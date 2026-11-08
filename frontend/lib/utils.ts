@@ -14,11 +14,9 @@ export function formatPercent(value: number, language: Language): string {
   return language === "fa" ? `${toPersianDigits(String(value))}٪` : `${value}%`;
 }
 
-export const jalaliLocale = (language: Language) => (language === "fa" ? faIR : enUS);
-
 /** "18 Aban" or "۱۸ آبان". */
 export function formatJalaliDay(isoDate: string, language: Language): string {
-  return formatNumber(format(parseISO(isoDate), "d MMMM", { locale: jalaliLocale(language) }), language);
+  return formatNumber(format(parseISO(isoDate), "d MMMM", { locale: language === "fa" ? faIR : enUS }), language);
 }
 
 export function toISODate(date: Date): string {
@@ -39,15 +37,6 @@ export function dueState(isoDate: string, done: boolean, now = new Date()): DueS
   if (isoDate < today) return "overdue";
   if (isoDate === today) return "today";
   return isoDate === toISODate(addDays(now, 1)) ? "tomorrow" : "later";
-}
-
-export function readAsDataURL(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(file);
-  });
 }
 
 /** Moves keyboard focus to a card once React has rendered its new position. */

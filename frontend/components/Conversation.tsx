@@ -4,8 +4,8 @@ import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { useT } from "@/lib/i18n";
 import { columnOf, useStore } from "@/lib/store";
 import type { ChatMessage, EventMessage, Message, SpaceId, TaskMessage } from "@/lib/types";
-import { readAsDataURL } from "@/lib/utils";
-import { CURRENT_USER_ID, GENERAL_SPACE, MAX_IMAGE_BYTES } from "@/src/data/seed";
+import { compressImage, dataUrlBytes } from "@/lib/compressImage";
+import { CURRENT_USER_ID, GENERAL_SPACE, MAX_IMAGE_BYTES } from "@/data/seed";
 import { ArrowIcon, Avatar, AvatarStack, ChatIcon, EventIcon, ImageIcon, TaskIcon, cx } from "./ui";
 
 const eventIcons = {
@@ -155,8 +155,13 @@ function Composer({ spaceId }: { spaceId: SpaceId }) {
     e.target.value = "";
     if (!file) return;
     if (!file.type.startsWith("image/")) return setError(t.notAnImage);
-    if (file.size > MAX_IMAGE_BYTES) return setError(t.imageTooLarge);
-    const src = await readAsDataURL(file);
+    let src: string;
+    try {
+      src = await compressImage(file);
+    } catch {
+      return setError(t.notAnImage);
+    }
+    if (dataUrlBytes(src) > MAX_IMAGE_BYTES) return setError(t.imageTooLarge);
     if (sendMessage(spaceId, { text: text || undefined, image: { src, file: file.name } })) reset();
     else setError(t.storageFull);
   }

@@ -1,3 +1,4 @@
+import type { Page } from "@playwright/test";
 import { button, card, column, drag, expect, pickUp, reload, setFa, test } from "./helpers";
 
 test("first visit shows the English sample board", async ({ page }) => {
@@ -256,7 +257,7 @@ test("quick actions appear on hover and delete a card", async ({ page }) => {
 
 test("adds a card from the dialog with every field", async ({ page }) => {
   await button(page, "Add card to Review").click();
-  const dialog = page.getByRole("dialog");
+  const dialog = page.getByRole("dialog", { name: "New card" });
   await dialog.getByRole("button", { name: "Save" }).click();
   await expect(dialog.getByRole("alert")).toHaveText("Title is required.");
   await dialog.getByLabel("Title").fill("Audit contrast");
@@ -264,8 +265,9 @@ test("adds a card from the dialog with every field", async ({ page }) => {
   await button(dialog, "High").click();
   await button(dialog, "Testing").click();
   await button(dialog, "Reza Mohammadi").click();
-  await button(dialog, "Set a due date").click();
-  await dialog.getByLabel("Day").selectOption("18");
+  await dialog.getByRole("textbox", { name: "Due date" }).click();
+  await page.locator(".rmdp-day", { hasText: /^18$/ }).click();
+  await expect(dialog.getByRole("textbox", { name: "Due date" })).toHaveValue("18 Aban 1405");
   await dialog.getByRole("button", { name: "Save" }).click();
   await expect(dialog).toBeHidden();
 
@@ -328,4 +330,147 @@ test("shortcuts stay off while typing in a field", async ({ page }) => {
   await page.getByRole("dialog").getByLabel("Title").pressSequentially("glnc");
   await expect(page.getByRole("dialog").getByLabel("Title")).toHaveValue("glnc");
   await expect(page.locator("html")).toHaveAttribute("dir", "ltr");
+});
+
+test.describe("Jalali date picker", () => {
+  const dateInput = (page: Page, name = "Due date") => page.locator("dialog").getByRole("textbox", { name });
+  const calendar = (page: Page) => page.locator(".rmdp-wrapper");
+
+  test("uses the Persian calendar with English month names in English", async ({ page }) => {
+    await button(page, "Add card to To do").click();
+    await expect(dateInput(page)).toHaveValue("");
+    await expect(page.locator("dialog select")).toHaveCount(0);
+
+    await dateInput(page).click();
+    await expect(calendar(page).locator(".rmdp-header-values")).toContainText("Aban");
+    await expect(calendar(page).locator(".rmdp-header-values")).toContainText("1405");
+    await expect(dateInput(page)).toHaveValue(""); // Opening alone picks nothing.
+
+    await calendar(page).locator(".rmdp-right").click();
+    await expect(calendar(page).locator(".rmdp-header-values")).toContainText("Azar");
+    await calendar(page).locator(".rmdp-left").click();
+
+    await page.locator(".rmdp-day", { hasText: /^18$/ }).click();
+    await expect(dateInput(page)).toHaveValue("18 Aban 1405");
+    await expect(calendar(page)).toBeHidden();
+  });
+
+  test("uses Persian digits and month names in Persian", async ({ page }) => {
+    await setFa(page);
+    await button(page, "افزودن کارت به برای انجام").click();
+    await dateInput(page, "سررسید").click();
+    await expect(calendar(page).locator(".rmdp-header-values")).toContainText("آبان");
+    await expect(calendar(page).locator(".rmdp-header-values")).toContainText("۱۴۰۵");
+    await page.locator(".rmdp-day", { hasText: /^۱۸$/ }).click();
+    await expect(dateInput(page, "سررسید")).toHaveValue("۱۸ آبان ۱۴۰۵");
+  });
+
+  test("Esc closes the calendar first and keeps the form open", async ({ page }) => {
+    await button(page, "Add card to To do").click();
+    await page.locator("dialog").getByLabel("Title").fill("Keep me");
+    await dateInput(page).click();
+    await expect(calendar(page)).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(calendar(page)).toBeHidden();
+    await expect(page.locator("dialog").getByLabel("Title")).toHaveValue("Keep me");
+    await page.keyboard.press("Escape");
+    await expect(page.locator("dialog")).toHaveCount(0);
+  });
+
+  test("edits and clears a due date, and persists it", async ({ page }) => {
+    await card(page, "Column unit tests").getByRole("button", { name: "Column unit tests" }).click();
+    await button(page, "Edit task").click();
+    await expect(dateInput(page)).toHaveValue("25 Aban 1405");
+    await dateInput(page).click();
+    await page.locator(".rmdp-day", { hasText: /^18$/ }).click();
+    await page.locator("dialog").getByRole("button", { name: "Save" }).click();
+    await expect(page.getByRole("complementary", { name: "Task info" })).toContainText("Tomorrow");
+
+    await reload(page);
+    await expect(page.getByRole("complementary", { name: "Task info" })).toContainText("Tomorrow");
+
+    await button(page, "Edit task").click();
+    await button(page.locator("dialog"), "Remove due date").click();
+    await expect(dateInput(page)).toHaveValue("");
+    await page.locator("dialog").getByRole("button", { name: "Save" }).click();
+    await expect(page.getByRole("complementary", { name: "Task info" })).toContainText("No due date");
+  });
+});
+
+test.describe("undo delete", () => {
+  const toast = (page: Page) => page.getByTestId("undo-toast");
+
+  test("deletes at once with no confirmation and shows the toast", async ({ page }) => {
+    const target = card(page, "Jalali date picker");
+    await target.hover();
+    await button(target, "Delete card").click();
+    await expect(card(page, "Jalali date picker")).toHaveCount(0);
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(toast(page)).toHaveText("Card deleted · Undo");
+  });
+
+  test("Undo restores column, position, members, progress and conversation", async ({ page }) => {
+    const titles = () => column(page, "doing").getByTestId("card").locator("[data-card-open]").allInnerTexts();
+    const before = await titles();
+    await card(page, "Task chat room").getByRole("button", { name: "Task chat room" }).click();
+    await page.getByRole("slider", { name: "Progress" }).fill("70");
+    await button(page, "Board").click();
+    const rooms = page.getByTestId("room");
+
+    const target = card(page, "Task chat room");
+    await target.hover();
+    await button(target, "Delete card").click();
+    await expect(card(page, "Task chat room")).toHaveCount(0);
+    await button(toast(page), "Undo").click();
+    await expect(toast(page)).toHaveCount(0);
+
+    expect(await titles()).toEqual(before);
+    const restored = card(column(page, "doing"), "Task chat room");
+    await expect(restored.getByTestId("card-progress")).toHaveText("70%");
+    await expect(restored.getByTitle("Reza Mohammadi")).toBeVisible();
+
+    await reload(page);
+    await restored.getByRole("button", { name: "Task chat room" }).click();
+    await expect(page.getByTestId("panel-member")).toHaveCount(3);
+    await expect(page.getByRole("img", { name: "chat-panel-v1.png" })).toBeVisible();
+    await expect(page.getByTestId("message")).toHaveCount(3);
+    await expect(page.getByTestId("event")).toHaveCount(3);
+    await expect(rooms.nth(6)).toContainText("Task chat room");
+    await page.getByRole("button", { name: /^# ?General|General/ }).first().click();
+    await expect(page.getByTestId("task-created")).toContainText("Task chat room");
+  });
+
+  test("Del key shows the toast too, and Undo works in Persian", async ({ page }) => {
+    await setFa(page);
+    const title = "انتخابگر تاریخ شمسی";
+    await card(page, title).getByRole("button", { name: title }).focus();
+    await page.keyboard.press("Delete");
+    await expect(card(page, title)).toHaveCount(0);
+    await expect(toast(page)).toHaveText("کارت حذف شد · برگرداندن");
+    await button(toast(page), "برگرداندن").click();
+    await expect(card(column(page, "doing"), title)).toBeVisible();
+    await expect(column(page, "doing").getByTestId("card").nth(1)).toContainText(title);
+  });
+
+  test("the toast leaves after 6 seconds and the delete sticks", async ({ page }) => {
+    const target = card(page, "Board progress bar");
+    await target.hover();
+    await button(target, "Delete card").click();
+    await expect(toast(page)).toBeVisible();
+    await page.waitForTimeout(5000);
+    await expect(toast(page)).toBeVisible();
+    await expect(toast(page)).toBeHidden({ timeout: 2000 });
+    await reload(page);
+    await expect(page.getByTestId("card")).toHaveCount(9);
+  });
+
+  test("a reload during the undo window keeps the card deleted", async ({ page }) => {
+    const target = card(page, "Board progress bar");
+    await target.hover();
+    await button(target, "Delete card").click();
+    await expect(toast(page)).toBeVisible();
+    await reload(page);
+    await expect(toast(page)).toHaveCount(0);
+    await expect(page.getByTestId("card")).toHaveCount(9);
+  });
 });

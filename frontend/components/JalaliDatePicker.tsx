@@ -1,11 +1,14 @@
 "use client";
 
-import { format, getDate, getDaysInMonth, getMonth, getYear, newDate, parseISO } from "date-fns-jalali";
+import { parseISO } from "date-fns-jalali";
+import { useEffect, useRef } from "react";
+import persian from "react-date-object/calendars/persian";
+import persian_en from "react-date-object/locales/persian_en";
+import persian_fa from "react-date-object/locales/persian_fa";
+import DatePicker, { type DatePickerRef } from "react-multi-date-picker";
 import { useT } from "@/lib/i18n";
-import { jalaliLocale, toISODate } from "@/lib/utils";
+import { toISODate } from "@/lib/utils";
 import { CloseIcon } from "./ui";
-
-const selectClass = "h-9 min-w-0 rounded-lg border border-surface-border bg-surface-hover px-1.5 text-[13px] text-ink";
 
 export default function JalaliDatePicker({
   value,
@@ -14,66 +17,60 @@ export default function JalaliDatePicker({
   value: string | null;
   onChange: (value: string | null) => void;
 }) {
-  const { t, n, language } = useT();
+  const { t, language } = useT();
+  const picker = useRef<DatePickerRef>(null);
 
-  if (!value) {
-    return (
-      <button
-        type="button"
-        onClick={() => onChange(toISODate(new Date()))}
-        className="h-9 w-fit rounded-lg border border-dashed border-dashed-line px-3 text-[12.5px] font-medium text-primary transition-colors hover:bg-ghost-hover"
-      >
-        {t.dialog.setDue}
-      </button>
-    );
-  }
-
-  const date = parseISO(value);
-  const year = getYear(date);
-  const month = getMonth(date);
-  const day = getDate(date);
-  const thisYear = getYear(new Date());
-  const years = [...new Set([year, thisYear, thisYear + 1, thisYear + 2])].sort((a, b) => a - b);
-  const dayCount = getDaysInMonth(newDate(year, month, 1));
-
-  // Clamp the day so that moving from a 31-day month never spills into the next month.
-  const update = (y: number, m: number, d: number) => {
-    const last = getDaysInMonth(newDate(y, m, 1));
-    onChange(toISODate(newDate(y, m, Math.min(d, last))));
-  };
+  // Esc closes an open calendar first; without this the surrounding modal would close and lose the form.
+  useEffect(() => {
+    const dialog = picker.current?.closest("dialog");
+    const onCancel = (e: Event) => {
+      if (!picker.current?.isOpen) return;
+      e.preventDefault();
+      picker.current.closeCalendar();
+    };
+    dialog?.addEventListener("cancel", onCancel);
+    return () => dialog?.removeEventListener("cancel", onCancel);
+  }, []);
 
   return (
     <div className="flex items-center gap-1.5">
-      <select aria-label={t.dialog.day} className={selectClass} value={day} onChange={(e) => update(year, month, Number(e.target.value))}>
-        {Array.from({ length: dayCount }, (_, i) => i + 1).map((d) => (
-          <option key={d} value={d}>
-            {n(d)}
-          </option>
-        ))}
-      </select>
-      <select aria-label={t.dialog.month} className={selectClass} value={month} onChange={(e) => update(year, Number(e.target.value), day)}>
-        {Array.from({ length: 12 }, (_, m) => (
-          <option key={m} value={m}>
-            {format(newDate(1405, m, 1), "MMMM", { locale: jalaliLocale(language) })}
-          </option>
-        ))}
-      </select>
-      <select aria-label={t.dialog.year} className={selectClass} value={year} onChange={(e) => update(Number(e.target.value), month, day)}>
-        {years.map((y) => (
-          <option key={y} value={y}>
-            {n(y)}
-          </option>
-        ))}
-      </select>
-      <button
-        type="button"
-        aria-label={t.dialog.clearDue}
-        title={t.dialog.clearDue}
-        onClick={() => onChange(null)}
-        className="grid size-9 flex-none place-items-center rounded-lg text-muted transition-colors hover:bg-ghost-hover hover:text-ink"
-      >
-        <CloseIcon size={14} />
-      </button>
+      <DatePicker
+        ref={picker}
+        value={value ? parseISO(value) : null}
+        onChange={(date) => {
+          onChange(date ? toISODate(date.toDate()) : null);
+          picker.current?.closeCalendar();
+        }}
+        calendar={persian}
+        locale={language === "fa" ? persian_fa : persian_en}
+        format="D MMMM YYYY"
+        onOpenPickNewDate={false}
+        calendarPosition="top-start"
+        className={language === "fa" ? "rmdp-rtl" : undefined}
+        containerClassName="flex-1"
+        render={(text: string, openCalendar: () => void) => (
+          <input
+            readOnly
+            value={text}
+            aria-label={t.due}
+            placeholder={t.dialog.setDue}
+            onFocus={openCalendar}
+            onClick={openCalendar}
+            className="h-9 w-full cursor-pointer rounded-lg border border-surface-border bg-surface-hover px-2.5 text-[13px] text-ink placeholder:text-muted"
+          />
+        )}
+      />
+      {value && (
+        <button
+          type="button"
+          aria-label={t.dialog.clearDue}
+          title={t.dialog.clearDue}
+          onClick={() => onChange(null)}
+          className="grid size-9 flex-none place-items-center rounded-lg text-muted transition-colors hover:bg-ghost-hover hover:text-ink"
+        >
+          <CloseIcon size={14} />
+        </button>
+      )}
     </div>
   );
 }

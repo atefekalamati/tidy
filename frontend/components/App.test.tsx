@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { compressImage } from "@/lib/compressImage";
 import { useStore } from "@/lib/store";
 import { useShortcuts } from "@/lib/useShortcuts";
 import Board from "./Board";
@@ -8,6 +9,15 @@ import CardDialog from "./CardDialog";
 import Chat from "./Chat";
 import Header from "./Header";
 import HelpDialog from "./HelpDialog";
+import JalaliDatePicker from "./JalaliDatePicker";
+import UndoToast, { UNDO_MS } from "./UndoToast";
+
+// jsdom has no canvas; compression itself is covered in lib/compressImage.test.ts.
+vi.mock("@/lib/compressImage", async (original) => ({
+  ...(await original<typeof import("@/lib/compressImage")>()),
+  compressImage: vi.fn(),
+}));
+const compressed = vi.mocked(compressImage);
 
 const store = () => useStore.getState();
 const column = (id: string) => store().columns.find((c) => c.id === id)!;
@@ -151,19 +161,43 @@ describe("Chat", () => {
     expect(screen.getByText("No messages yet")).toBeInTheDocument();
   });
 
-  it("rejects an image over 2 MB", async () => {
+  const attach = (name = "shot.png", type = "image/png") =>
+    userEvent.upload(
+      screen.getByLabelText("Attach image"),
+      new File([new Uint8Array([1, 2, 3])], name, { type }),
+      { applyAccept: false },
+    );
+
+  it("applies the 2 MB limit to the compressed image, not the upload", async () => {
+    compressed.mockResolvedValueOnce(`data:image/jpeg;base64,${"A".repeat(Math.ceil(((2 * 1024 * 1024 + 1) * 4) / 3))}`);
     openGeneral();
-    const big = new File([new Uint8Array(2 * 1024 * 1024 + 1)], "big.png", { type: "image/png" });
-    await userEvent.upload(screen.getByLabelText("Attach image"), big);
-    expect(screen.getByRole("alert")).toHaveTextContent("2 MB");
+    await attach();
+    expect(await screen.findByRole("alert")).toHaveTextContent("2 MB");
+    expect(screen.queryByRole("img", { name: "shot.png" })).not.toBeInTheDocument();
   });
 
-  it("uploads an image together with the draft as its caption", async () => {
+  it("accepts a large upload that compresses to under 2 MB", async () => {
+    compressed.mockResolvedValueOnce("data:image/jpeg;base64,AAAA");
+    openGeneral();
+    const big = new File([new Uint8Array(5 * 1024 * 1024)], "big.png", { type: "image/png" });
+    await userEvent.upload(screen.getByLabelText("Attach image"), big);
+    expect(await screen.findByRole("img", { name: "big.png" })).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("reports a file that cannot be decoded", async () => {
+    compressed.mockRejectedValueOnce(new Error("bad"));
+    openGeneral();
+    await attach("broken.png");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Please choose an image file.");
+  });
+
+  it("uploads the compressed image together with the draft as its caption", async () => {
+    compressed.mockResolvedValueOnce("data:image/jpeg;base64,AAAA");
     openGeneral();
     await userEvent.type(screen.getByRole("textbox", { name: "Write a message…" }), "Look");
-    const file = new File([new Uint8Array([1, 2, 3])], "shot.png", { type: "image/png" });
-    await userEvent.upload(screen.getByLabelText("Attach image"), file);
-    expect(await screen.findByRole("img", { name: "shot.png" })).toHaveAttribute("src", expect.stringContaining("data:image/png"));
+    await attach();
+    expect(await screen.findByRole("img", { name: "shot.png" })).toHaveAttribute("src", "data:image/jpeg;base64,AAAA");
     expect(screen.getByText("Look")).toBeInTheDocument();
   });
 
@@ -205,11 +239,9 @@ describe("CardDialog", () => {
     await userEvent.click(screen.getByRole("button", { name: "High", hidden: true }));
     await userEvent.click(screen.getByRole("button", { name: "Bug", hidden: true }));
     await userEvent.click(screen.getByRole("button", { name: "Ali Rezaei", hidden: true }));
-    await userEvent.click(screen.getByRole("button", { name: "Set a due date", hidden: true }));
     await userEvent.click(screen.getByRole("button", { name: "Save", hidden: true }));
     const card = store().cards[column("review").cardIds.at(-1)!];
-    expect(card).toMatchObject({ title: "Ship it", priority: "high", labelIds: ["bug"], memberIds: ["sara", "ali"], progress: 0 });
-    expect(card.dueDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(card).toMatchObject({ title: "Ship it", priority: "high", labelIds: ["bug"], memberIds: ["sara", "ali"], progress: 0, dueDate: null });
   });
 
   it("keeps sample text localized unless it is edited", async () => {
@@ -226,13 +258,105 @@ describe("CardDialog", () => {
     await userEvent.click(screen.getByRole("button", { name: "Save", hidden: true }));
     expect(store().cards.c5.title).toBe("Mine");
   });
+});
 
-  it("keeps the day valid when the month gets shorter", async () => {
-    act(() => store().updateCard("c1", { ...store().cards.c1, dueDate: "2026-08-22" })); // 31 Mordad 1405
-    render(<CardDialog columnId="ideas" cardId="c1" />);
-    await userEvent.selectOptions(screen.getByLabelText("Month"), "6"); // Mehr has 30 days
-    await userEvent.click(screen.getByRole("button", { name: "Save", hidden: true }));
-    expect(store().cards.c1.dueDate).toBe("2026-10-22"); // 30 Mehr 1405
+describe("JalaliDatePicker", () => {
+  const dateInput = () => screen.getByRole("textbox", { name: "Due date" });
+  const day = (text: string) =>
+    [...document.querySelectorAll<HTMLElement>(".rmdp-day:not(.rmdp-deactive) span")].find((el) => el.textContent === text)!;
+
+  it("shows the Jalali date with English month names in en", () => {
+    render(<JalaliDatePicker value="2026-11-09" onChange={() => {}} />);
+    expect(dateInput()).toHaveValue("18 Aban 1405");
+  });
+
+  it("shows the Jalali date in Persian in fa", () => {
+    act(() => store().setLanguage("fa"));
+    render(<JalaliDatePicker value="2026-11-09" onChange={() => {}} />);
+    expect(screen.getByRole("textbox", { name: "سررسید" })).toHaveValue("۱۸ آبان ۱۴۰۵");
+  });
+
+  it("has no dropdowns", () => {
+    render(<JalaliDatePicker value="2026-11-09" onChange={() => {}} />);
+    expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
+  });
+
+  it("returns the picked day as a Gregorian date", async () => {
+    const onChange = vi.fn();
+    render(<JalaliDatePicker value="2026-11-09" onChange={onChange} />);
+    await userEvent.click(dateInput());
+    await userEvent.click(day("20"));
+    expect(onChange).toHaveBeenCalledWith("2026-11-11");
+  });
+
+  it("does not pick a date just by opening", async () => {
+    const onChange = vi.fn();
+    render(<JalaliDatePicker value={null} onChange={onChange} />);
+    await userEvent.click(dateInput());
+    expect(document.querySelector(".rmdp-wrapper")).toBeInTheDocument();
+    expect(onChange).not.toHaveBeenCalled();
+    expect(dateInput()).toHaveValue("");
+  });
+
+  it("clears the date", async () => {
+    const onChange = vi.fn();
+    render(<JalaliDatePicker value="2026-11-09" onChange={onChange} />);
+    await userEvent.click(screen.getByRole("button", { name: "Remove due date" }));
+    expect(onChange).toHaveBeenCalledWith(null);
+  });
+});
+
+describe("UndoToast", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("appears on delete and restores the card on Undo", () => {
+    render(<UndoToast />);
+    expect(screen.queryByTestId("undo-toast")).not.toBeInTheDocument();
+    act(() => store().deleteCard("c6"));
+    expect(screen.getByTestId("undo-toast")).toHaveTextContent("Card deleted · Undo");
+    fireEvent.click(screen.getByRole("button", { name: "Undo" }));
+    expect(column("doing").cardIds).toEqual(["c5", "c6", "c7"]);
+    expect(screen.queryByTestId("undo-toast")).not.toBeInTheDocument();
+  });
+
+  it("disappears after 6 seconds and the card stays deleted", () => {
+    render(<UndoToast />);
+    act(() => store().deleteCard("c6"));
+    act(() => {
+      vi.advanceTimersByTime(UNDO_MS - 1);
+    });
+    expect(screen.getByTestId("undo-toast")).toBeInTheDocument();
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
+    expect(screen.queryByTestId("undo-toast")).not.toBeInTheDocument();
+    expect(store().lastDeleted).toBeNull();
+    expect(store().cards.c6).toBeUndefined();
+  });
+
+  it("restarts the 6 seconds for a second delete", () => {
+    render(<UndoToast />);
+    act(() => store().deleteCard("c6"));
+    act(() => {
+      vi.advanceTimersByTime(4000);
+    });
+    act(() => store().deleteCard("c7"));
+    act(() => {
+      vi.advanceTimersByTime(4000);
+    });
+    expect(screen.getByTestId("undo-toast")).toBeInTheDocument();
+  });
+
+  it("is translated", () => {
+    act(() => store().setLanguage("fa"));
+    render(<UndoToast />);
+    act(() => store().deleteCard("c6"));
+    expect(screen.getByTestId("undo-toast")).toHaveTextContent("کارت حذف شد · برگرداندن");
   });
 });
 

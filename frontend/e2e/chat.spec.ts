@@ -1,4 +1,4 @@
-import { PNG, button, card, column, composer, expect, openRoom, reload, setFa, test } from "./helpers";
+import { PNG, button, card, column, composer, expect, makeImage, openRoom, reload, setFa, test } from "./helpers";
 
 const panel = (page: Parameters<typeof composer>[0]) => page.getByRole("complementary", { name: "Task info" });
 
@@ -89,25 +89,74 @@ test.describe("in the chat section", () => {
 
   test("uploads an image with a caption and keeps it after reload", async ({ page }) => {
     await composer(page).fill("Latest mockup");
-    await page.getByLabel("Attach image").setInputFiles({ name: "mockup.png", mimeType: "image/png", buffer: PNG });
+    const buffer = await makeImage(page, { width: 10, height: 10 });
+    await page.getByLabel("Attach image").setInputFiles({ name: "mockup.png", mimeType: "image/png", buffer });
     const image = page.getByRole("img", { name: "mockup.png" });
-    await expect(image).toHaveAttribute("src", /^data:image\/png;base64,/);
+    await expect(image).toHaveAttribute("src", /^data:image\/jpeg;base64,/);
     await expect(page.getByText("Latest mockup")).toBeVisible();
     await expect(composer(page)).toHaveValue("");
 
     await reload(page);
-    await expect(page.getByRole("img", { name: "mockup.png" })).toHaveJSProperty("naturalWidth", 1);
+    await expect(page.getByRole("img", { name: "mockup.png" })).toHaveJSProperty("naturalWidth", 10);
   });
 
-  test("rejects an image over 2 MB and a file that is not an image", async ({ page }) => {
-    const before = await page.getByTestId("message").count();
-    await page.getByLabel("Attach image").setInputFiles({
-      name: "huge.png",
-      mimeType: "image/png",
-      buffer: Buffer.alloc(2 * 1024 * 1024 + 1),
+  test("resizes the longest side to 1280px and converts to JPEG", async ({ page }) => {
+    const buffer = await makeImage(page, { width: 2560, height: 1280 });
+    await page.getByLabel("Attach image").setInputFiles({ name: "wide.png", mimeType: "image/png", buffer });
+    const image = page.getByRole("img", { name: "wide.png" });
+    await expect(image).toHaveAttribute("src", /^data:image\/jpeg;base64,/);
+    await expect(image).toHaveJSProperty("naturalWidth", 1280);
+    await expect(image).toHaveJSProperty("naturalHeight", 640);
+  });
+
+  test("resizes portrait images by their height", async ({ page }) => {
+    const buffer = await makeImage(page, { width: 800, height: 1600 });
+    await page.getByLabel("Attach image").setInputFiles({ name: "tall.png", mimeType: "image/png", buffer });
+    const image = page.getByRole("img", { name: "tall.png" });
+    await expect(image).toHaveJSProperty("naturalWidth", 640);
+    await expect(image).toHaveJSProperty("naturalHeight", 1280);
+  });
+
+  test("does not enlarge small images", async ({ page }) => {
+    const buffer = await makeImage(page, { width: 300, height: 200 });
+    await page.getByLabel("Attach image").setInputFiles({ name: "small.png", mimeType: "image/png", buffer });
+    await expect(page.getByRole("img", { name: "small.png" })).toHaveJSProperty("naturalWidth", 300);
+  });
+
+  test("keeps a PNG with transparency as PNG", async ({ page }) => {
+    const buffer = await makeImage(page, { width: 1600, height: 800, alpha: 128 });
+    await page.getByLabel("Attach image").setInputFiles({ name: "clear.png", mimeType: "image/png", buffer });
+    const image = page.getByRole("img", { name: "clear.png" });
+    await expect(image).toHaveAttribute("src", /^data:image\/png;base64,/);
+    await expect(image).toHaveJSProperty("naturalWidth", 1280);
+    const alpha = await image.evaluate((el: HTMLImageElement) => {
+      const canvas = document.createElement("canvas");
+      canvas.width = canvas.height = 1;
+      const context = canvas.getContext("2d")!;
+      context.drawImage(el, 0, 0);
+      return context.getImageData(0, 0, 1, 1).data[3];
     });
+    expect(alpha).toBeLessThan(255);
+  });
+
+  test("accepts an upload over 2 MB that compresses below the limit, and keeps it after reload", async ({ page }) => {
+    const buffer = await makeImage(page, { width: 1600, height: 1600, noise: 32 });
+    expect(buffer.length).toBeGreaterThan(2 * 1024 * 1024);
+    await page.getByLabel("Attach image").setInputFiles({ name: "photo.png", mimeType: "image/png", buffer });
+    await expect(page.getByRole("img", { name: "photo.png" })).toHaveJSProperty("naturalWidth", 1280);
+    await expect(page.locator("p[role=alert]")).toHaveCount(0);
+    await reload(page);
+    await expect(page.getByRole("img", { name: "photo.png" })).toHaveJSProperty("naturalWidth", 1280);
+  });
+
+  test("rejects an image still over 2 MB after compression, and files that are not images", async ({ page }) => {
+    const before = await page.getByTestId("message").count();
+    const buffer = await makeImage(page, { width: 1280, height: 1280, alpha: 200, noise: 255 });
+    await page.getByLabel("Attach image").setInputFiles({ name: "huge.png", mimeType: "image/png", buffer });
     await expect(page.locator("p[role=alert]")).toHaveText("Image must be 2 MB or smaller.");
     await page.getByLabel("Attach image").setInputFiles({ name: "a.txt", mimeType: "text/plain", buffer: Buffer.from("x") });
+    await expect(page.locator("p[role=alert]")).toHaveText("Please choose an image file.");
+    await page.getByLabel("Attach image").setInputFiles({ name: "broken.png", mimeType: "image/png", buffer: Buffer.from("not a png") });
     await expect(page.locator("p[role=alert]")).toHaveText("Please choose an image file.");
     await expect(page.getByTestId("message")).toHaveCount(before);
   });

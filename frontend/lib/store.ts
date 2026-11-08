@@ -1,12 +1,13 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import { createSeed, CURRENT_USER_ID, GENERAL_SPACE } from "@/src/data/seed";
+import { createSeed, CURRENT_USER_ID, GENERAL_SPACE } from "@/data/seed";
 import type {
   Card,
   CardInput,
   ChatMessage,
   Column,
   ColumnId,
+  DeletedCard,
   Density,
   Dialog,
   Language,
@@ -24,14 +25,18 @@ export const initialState = () => ({
   view: "board" as View,
   activeSpace: GENERAL_SPACE as SpaceId,
   dialog: null as Dialog | null,
+  lastDeleted: null as DeletedCard | null,
 });
 
 type Data = ReturnType<typeof initialState>;
+type Persisted = Omit<Data, "dialog" | "lastDeleted">;
 
 export interface Store extends Data {
   addCard: (columnId: ColumnId, input: CardInput) => string;
   updateCard: (id: string, input: CardInput) => void;
   deleteCard: (id: string) => void;
+  undoDelete: () => void;
+  dismissUndo: () => void;
   moveCard: (cardId: string, toColumnId: ColumnId, toIndex: number) => void;
   moveCardBy: (cardId: string, delta: -1 | 1) => void;
   setProgress: (cardId: string, value: number) => void;
@@ -81,7 +86,7 @@ export function placeCard(columns: Column[], cardId: string, toColumnId: ColumnI
 // A quota error must not surface from inside a store update, so it is recorded here instead.
 let lastWriteFailed = false;
 
-const storage = createJSONStorage<Omit<Data, "dialog">>(() => {
+const storage = createJSONStorage<Persisted>(() => {
   const local = window.localStorage;
   return {
     getItem: (key) => local.getItem(key),
@@ -124,8 +129,14 @@ export const useStore = create<Store>()(
 
         deleteCard: (id) =>
           set((s) => {
-            const { [id]: _card, ...cards } = s.cards;
-            const { [id]: _room, ...rest } = s.messages;
+            const { [id]: card, ...cards } = s.cards;
+            const { [id]: room, ...rest } = s.messages;
+            const column = columnOf(s.columns, id);
+            const announcements = Object.entries(rest).flatMap(([spaceId, list]) =>
+              list.flatMap((message, index) =>
+                message.type === "task" && message.cardId === id ? [{ spaceId, index, message }] : [],
+              ),
+            );
             const messages = Object.fromEntries(
               Object.entries(rest).map(([space, list]) => [
                 space,
@@ -133,6 +144,16 @@ export const useStore = create<Store>()(
               ]),
             );
             return {
+              lastDeleted: {
+                card,
+                columnId: column.id,
+                columnIndex: column.cardIds.indexOf(id),
+                roomIndex: Object.keys(s.cards).indexOf(id),
+                room,
+                unread: s.unread[id],
+                announcements,
+                wasActiveSpace: s.activeSpace === id,
+              },
               cards,
               messages,
               unread: markRead(s.unread, id),
@@ -140,6 +161,34 @@ export const useStore = create<Store>()(
               activeSpace: s.activeSpace === id ? GENERAL_SPACE : s.activeSpace,
             };
           }),
+
+        undoDelete: () =>
+          set((s) => {
+            const deleted = s.lastDeleted;
+            if (!deleted) return s;
+            const { card, columnId, columnIndex, roomIndex, room, unread, announcements, wasActiveSpace } = deleted;
+
+            const entries = Object.entries(s.cards);
+            entries.splice(roomIndex, 0, [card.id, card]);
+
+            const messages = room ? { ...s.messages, [card.id]: room } : { ...s.messages };
+            for (const { spaceId, index, message } of announcements) {
+              const list = [...(messages[spaceId] ?? [])];
+              list.splice(index, 0, message);
+              messages[spaceId] = list;
+            }
+
+            return {
+              cards: Object.fromEntries(entries),
+              messages,
+              unread: unread ? { ...s.unread, [card.id]: unread } : s.unread,
+              columns: placeCard(s.columns, card.id, columnId, columnIndex),
+              activeSpace: wasActiveSpace && s.activeSpace === GENERAL_SPACE ? card.id : s.activeSpace,
+              lastDeleted: null,
+            };
+          }),
+
+        dismissUndo: () => set({ lastDeleted: null }),
 
         moveCard: (cardId, toColumnId, toIndex) => {
           const from = columnOf(get().columns, cardId);
@@ -225,10 +274,10 @@ export const useStore = create<Store>()(
       name: "kanban-store",
       version: 2,
       storage,
-      partialize: ({ dialog: _dialog, ...state }) => state,
+      partialize: ({ dialog: _dialog, lastDeleted: _lastDeleted, ...state }) => state,
       // V1 data has a different shape (single assignee, no chat), so it is replaced by the V2 sample data.
       migrate: () => {
-        const { dialog: _dialog, ...fresh } = initialState();
+        const { dialog: _dialog, lastDeleted: _lastDeleted, ...fresh } = initialState();
         return fresh;
       },
     },

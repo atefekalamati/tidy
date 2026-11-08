@@ -4,7 +4,7 @@ import { useState, type FormEvent, type ReactNode } from "react";
 import { useT } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
 import type { ColumnId, Priority } from "@/lib/types";
-import { CURRENT_USER_ID, labels } from "@/src/data/seed";
+import { CURRENT_USER_ID, labels } from "@/data/seed";
 import Dialog from "./Dialog";
 import JalaliDatePicker from "./JalaliDatePicker";
 import { Segmented, SegmentButton, cx } from "./ui";

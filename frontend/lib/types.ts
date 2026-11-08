@@ -83,4 +83,17 @@ export interface TaskMessage extends MessageBase {
 
 export type Message = ChatMessage | EventMessage | TaskMessage;
 
+/** Everything needed to put a deleted card back exactly where it was. */
+export interface DeletedCard {
+  card: Card;
+  columnId: ColumnId;
+  columnIndex: number;
+  /** Position among all cards, which is the order of the task rooms list. */
+  roomIndex: number;
+  room?: Message[];
+  unread?: number;
+  announcements: { spaceId: SpaceId; index: number; message: Message }[];
+  wasActiveSpace: boolean;
+}
+
 export type Dialog = { type: "help" } | { type: "card"; columnId: ColumnId; cardId?: string };

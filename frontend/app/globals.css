@@ -120,6 +120,55 @@
   }
 }
 
+/* react-multi-date-picker in the Linen Sky palette. The .rmdp-wrapper prefix outranks the library's own styles. */
+.rmdp-wrapper {
+  background: var(--color-surface);
+  border: 1px solid var(--color-column-border);
+  border-radius: 10px;
+}
+
+.rmdp-wrapper.rmdp-shadow {
+  box-shadow: var(--shadow-popover);
+}
+
+.rmdp-wrapper .rmdp-header-values {
+  color: var(--color-heading);
+  font-weight: 600;
+}
+
+.rmdp-wrapper .rmdp-week-day {
+  color: var(--color-muted);
+}
+
+.rmdp-wrapper .rmdp-day {
+  color: var(--color-ink);
+}
+
+.rmdp-wrapper .rmdp-arrow {
+  border-color: var(--color-primary);
+}
+
+.rmdp-wrapper .rmdp-arrow-container:hover {
+  background-color: var(--color-column);
+  box-shadow: none;
+}
+
+.rmdp-wrapper .rmdp-arrow-container:hover .rmdp-arrow {
+  border-color: var(--color-primary-hover);
+}
+
+.rmdp-wrapper .rmdp-day.rmdp-today span {
+  background-color: var(--color-column);
+  color: var(--color-heading);
+}
+
+.rmdp-wrapper .rmdp-day.rmdp-selected span:not(.highlight),
+.rmdp-wrapper .rmdp-day:not(.rmdp-disabled, .rmdp-day-hidden) span:hover {
+  background-color: var(--color-primary);
+  box-shadow: none;
+  color: #ffffff;
+}
+
 @utility tidy-scroll {
   &::-webkit-scrollbar {
     height: 10px;

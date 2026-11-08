@@ -3,7 +3,7 @@
 import { useT } from "@/lib/i18n";
 import { columnOf, useStore } from "@/lib/store";
 import type { Card } from "@/lib/types";
-import { GENERAL_SPACE } from "@/src/data/seed";
+import { GENERAL_SPACE } from "@/data/seed";
 import Conversation from "./Conversation";
 import TaskPanel from "./TaskPanel";
 import { cx } from "./ui";

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { GENERAL_SPACE } from "@/src/data/seed";
+import { GENERAL_SPACE } from "@/data/seed";
 import { initialState, placeCard, useStore } from "./store";
 import type { CardInput } from "./types";
 
@@ -37,6 +37,86 @@ describe("cards", () => {
     expect(store().unread.c7).toBeUndefined();
     expect(store().messages.general.some((m) => m.type === "task" && m.cardId === "c7")).toBe(false);
     expect(store().activeSpace).toBe(GENERAL_SPACE);
+  });
+});
+
+describe("undo delete", () => {
+  const snapshot = () =>
+    structuredClone({
+      cards: store().cards,
+      cardOrder: Object.keys(store().cards),
+      columns: store().columns,
+      messages: store().messages,
+      unread: store().unread,
+    });
+
+  it("restores everything exactly as it was", () => {
+    store().setProgress("c7", 70);
+    store().removeMember("c7", "reza");
+    const before = snapshot();
+    store().deleteCard("c7");
+    expect(store().lastDeleted?.card.id).toBe("c7");
+    expect(snapshot()).not.toEqual(before);
+    store().undoDelete();
+    expect(snapshot()).toEqual(before);
+    expect(store().lastDeleted).toBeNull();
+  });
+
+  it("restores the column position of a card in the middle", () => {
+    store().deleteCard("c6");
+    expect(column("doing").cardIds).toEqual(["c5", "c7"]);
+    store().undoDelete();
+    expect(column("doing").cardIds).toEqual(["c5", "c6", "c7"]);
+  });
+
+  it("restores the task announcement at its place in General", () => {
+    const before = store().messages.general.map((m) => m.id);
+    store().deleteCard("c7");
+    store().undoDelete();
+    expect(store().messages.general.map((m) => m.id)).toEqual(before);
+  });
+
+  it("keeps messages sent after the delete", () => {
+    store().deleteCard("c7");
+    store().sendMessage("general", { text: "later" });
+    store().undoDelete();
+    expect(store().messages.general.at(-1)).toMatchObject({ text: "later" });
+    expect(store().messages.general.some((m) => m.type === "task" && m.cardId === "c7")).toBe(true);
+  });
+
+  it("reopens the room if it was the active space", () => {
+    store().openSpace("c7");
+    store().deleteCard("c7");
+    expect(store().activeSpace).toBe(GENERAL_SPACE);
+    store().undoDelete();
+    expect(store().activeSpace).toBe("c7");
+  });
+
+  it("restores a card that had no conversation", () => {
+    store().deleteCard("c1");
+    store().undoDelete();
+    expect(store().cards.c1).toBeDefined();
+    expect(store().messages.c1).toBeUndefined();
+  });
+
+  it("does nothing after the undo window is dismissed", () => {
+    store().deleteCard("c1");
+    store().dismissUndo();
+    store().undoDelete();
+    expect(store().cards.c1).toBeUndefined();
+  });
+
+  it("undoes the most recent delete", () => {
+    store().deleteCard("c1");
+    store().deleteCard("c2");
+    store().undoDelete();
+    expect(store().cards.c2).toBeDefined();
+    expect(store().cards.c1).toBeUndefined();
+  });
+
+  it("never persists the undo snapshot", () => {
+    store().deleteCard("c1");
+    expect(JSON.parse(localStorage.getItem("kanban-store")!).state).not.toHaveProperty("lastDeleted");
   });
 });
 

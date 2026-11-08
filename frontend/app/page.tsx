@@ -6,6 +6,7 @@ import CardDialog from "@/components/CardDialog";
 import Chat from "@/components/Chat";
 import Header from "@/components/Header";
 import HelpDialog from "@/components/HelpDialog";
+import UndoToast from "@/components/UndoToast";
 import { useStore } from "@/lib/store";
 import { useShortcuts } from "@/lib/useShortcuts";
 
@@ -30,6 +31,7 @@ export default function Home() {
     <div className="flex h-dvh flex-col">
       <Header />
       {view === "board" ? <Board /> : <Chat />}
+      <UndoToast />
       {dialog?.type === "help" && <HelpDialog />}
       {dialog?.type === "card" && <CardDialog key={dialog.cardId ?? "new"} columnId={dialog.columnId} cardId={dialog.cardId} />}
     </div>

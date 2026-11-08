@@ -63,3 +63,31 @@ export async function pickUp(page: Page) {
   await expect(page.getByTestId("drag-overlay")).toBeVisible();
   await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
 }
+
+/** Draws an image in the browser and returns its bytes; noise is 0 for a flat image. */
+export async function makeImage(
+  page: Page,
+  { width, height, alpha = 255, noise = 0 }: { width: number; height: number; alpha?: number; noise?: number },
+) {
+  const base64 = await page.evaluate(
+    ({ width, height, alpha, noise }) => {
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const context = canvas.getContext("2d")!;
+      const image = context.createImageData(width, height);
+      let seed = 7;
+      const random = () => (seed = (seed * 48271) % 2147483647) / 2147483647;
+      for (let i = 0; i < image.data.length; i += 4) {
+        image.data[i] = 120 + random() * noise;
+        image.data[i + 1] = 150 + random() * noise;
+        image.data[i + 2] = 180 + random() * noise;
+        image.data[i + 3] = alpha;
+      }
+      context.putImageData(image, 0, 0);
+      return canvas.toDataURL("image/png").split(",")[1];
+    },
+    { width, height, alpha, noise },
+  );
+  return Buffer.from(base64, "base64");
+}

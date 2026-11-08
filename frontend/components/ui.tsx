@@ -3,7 +3,7 @@
 import type { ReactNode, SVGProps } from "react";
 import { useT } from "@/lib/i18n";
 import type { Member, Priority } from "@/lib/types";
-import { labels } from "@/src/data/seed";
+import { labels } from "@/data/seed";
 
 export const cx = (...parts: (string | false | undefined)[]) => parts.filter(Boolean).join(" ");
 
