@@ -6,9 +6,17 @@ const YOU = "شما";
 const verb = (who: string, base: string) => (who === YOU ? `${base}ید` : base);
 
 export const fa: Dictionary = {
-  appSub: "تخته‌ی پروژه · ۵ ستون",
   navLabel: "بخش‌ها",
-  board: "تخته",
+  sidebarLabel: "نوار کناری",
+  wsBadge: "تیم",
+  workspace: "فضای کار",
+  wsName: "تیم کارابین",
+  channels: "کانال‌ها",
+  owner: "مالک فضای کار",
+  accountMenu: "منوی حساب",
+  crumbLabel: "مسیر صفحه",
+  crumbBoard: "تخته‌ی پروژه",
+  newCard: "کارت جدید",
   chat: "گفتگو",
   unread: "پیام‌های خوانده‌نشده",
   summaryLabel: "خلاصه‌ی تخته",
@@ -50,8 +58,6 @@ export const fa: Dictionary = {
   cardDeleted: "کارت حذف شد",
   undo: "برگرداندن",
   messageCount: (n) => `${n} پیام`,
-  spacesLabel: "گفتگوها",
-  teamSpace: "فضای تیم",
   general: "عمومی",
   generalSub: (n) => `کل تیم · ${n} عضو`,
   rooms: "اتاق‌های کار",

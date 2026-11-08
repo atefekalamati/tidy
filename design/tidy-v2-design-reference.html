@@ -33,22 +33,70 @@ body{margin:0;background:#F6F1E7}
 .krange{width:100%;accent-color:#2F6FA8}
 </style>
 </helmet>
-<div dir="{{dir}}" style="position: relative; min-height: 900px; background: #F6F1E7; font-family: {{font}}; color: #1F2A37; display: flex; flex-direction: column; font-variant-numeric: tabular-nums">
-<header style="display: flex; flex-wrap: wrap; align-items: center; gap: 14px 24px; padding: 14px 32px; background: #FBF8F2; border-bottom: 1px solid #E8E0D1">
-<div style="display: flex; align-items: center; gap: 12px">
+<div dir="{{dir}}" style="position: relative; min-height: 900px; background: #F6F1E7; font-family: {{font}}; color: #1F2A37; display: flex; font-variant-numeric: tabular-nums">
+<aside aria-label="{{t.sidebarLabel}}" style="flex: 0 0 256px; width: 256px; box-sizing: border-box; height: 900px; position: sticky; top: 0; background: #FBF8F2; border-inline-end: 1px solid #E8E0D1; display: flex; flex-direction: column">
+<div style="display: flex; align-items: center; gap: 10px; padding: 20px 18px 16px">
 <span aria-hidden="true" style="width: 34px; height: 34px; border-radius: 9px; background: #2F6FA8; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(47,111,168,.25)">
 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="5" height="16" rx="1.5"></rect><rect x="10" y="4" width="5" height="10" rx="1.5"></rect><rect x="17" y="4" width="4" height="13" rx="1.5"></rect></svg>
 </span>
-<div style="display: flex; flex-direction: column">
-<h1 style="margin: 0; font-family: 'Geist', sans-serif; font-size: 22px; line-height: 28px; font-weight: 700; letter-spacing: -0.03em; color: #1E3A5F">Tidy<span aria-hidden="true" style="color: #2F6FA8">.</span></h1>
-<p style="margin: 0; font-size: 12px; line-height: 16px; color: #5F6B78">{{t.appSub}}</p>
+<h1 dir="ltr" style="margin: 0; font-family: 'Geist', sans-serif; font-size: 22px; line-height: 28px; font-weight: 700; letter-spacing: -0.03em; color: #1E3A5F">Tidy<span aria-hidden="true" style="color: #2F6FA8">.</span></h1>
+<span style="margin-inline-start: auto; height: 20px; display: inline-flex; align-items: center; padding: 0 7px; border-radius: 6px; background: #F1EBDF; border: 1px solid #E4DCCB; font-size: 10.5px; font-weight: 600; letter-spacing: .04em; color: #5F6B78">{{t.wsBadge}}</span>
+</div>
+<div style="padding: 0 14px">
+<button type="button" class="kbtn kspace" style="display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px; border: 1px solid #E4DCCB; background: #FFFDF8; border-radius: 12px; font: inherit; text-align: start; cursor: pointer; box-shadow: 0 1px 2px rgba(31,42,55,.05)">
+<span aria-hidden="true" style="flex: 0 0 34px; width: 34px; height: 34px; border-radius: 9px; background: #DCE8F2; color: #1E3A5F; font-family: 'Geist', sans-serif; font-size: 15px; font-weight: 700; display: flex; align-items: center; justify-content: center">C</span>
+<span style="display: flex; flex-direction: column; min-width: 0; flex: 1">
+<span style="font-size: 11px; font-weight: 600; letter-spacing: .03em; color: #5F6B78">{{t.workspace}}</span>
+<span style="font-size: 13.5px; font-weight: 600; color: #1F2A37">{{t.wsName}}</span>
+</span>
+<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5F6B78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg>
+</button>
+</div>
+<nav aria-label="{{t.navLabel}}" style="display: flex; flex-direction: column; gap: 2px; padding: 16px 14px 6px">
+<button type="button" class="kbtn kspace" aria-current="{{boardCurrent}}" onClick="{{goBoard}}" style="{{navBoard}}">
+<svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="5" height="16" rx="1.5"></rect><rect x="10" y="4" width="5" height="10" rx="1.5"></rect><rect x="17" y="4" width="4" height="13" rx="1.5"></rect></svg>{{t.crumbBoard}}<span style="margin-inline-start: auto; min-width: 22px; height: 20px; padding: 0 6px; box-sizing: border-box; border-radius: 999px; background: #F1EBDF; color: #4B5B6B; font-size: 11.5px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center">{{boardCount}}</span></button>
+<button type="button" class="kbtn kspace" aria-current="{{chatCurrent}}" onClick="{{goChat}}" style="{{navChat}}">
+<svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12Z"></path></svg>{{t.chat}}<span style="margin-inline-start: auto; min-width: 20px; height: 20px; padding: 0 6px; box-sizing: border-box; border-radius: 999px; background: #B42318; color: #FFFFFF; font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center">{{chatBadge}}</span></button>
+</nav>
+<div class="kscroll" style="flex: 1; min-height: 0; overflow-y: auto; padding: 6px 14px 12px; display: flex; flex-direction: column; gap: 2px">
+<span style="padding: 12px 10px 6px; font-size: 11px; font-weight: 600; letter-spacing: .04em; color: #5F6B78">{{t.channels}}</span>
+<button type="button" class="kbtn kspace" onClick="{{goGeneral}}" aria-current="{{generalCurrent}}" style="{{generalStyle}}">
+<span aria-hidden="true" style="flex: 0 0 22px; width: 22px; height: 22px; border-radius: 6px; background: #E6EEF5; color: #2F6FA8; font-family: 'Geist', sans-serif; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center">#</span>
+<span style="flex: 1; font-size: 13px; font-weight: 600; color: #1F2A37">{{t.general}}</span>
+</button>
+<span style="padding: 14px 10px 6px; font-size: 11px; font-weight: 600; letter-spacing: .04em; color: #5F6B78">{{t.rooms}}</span>
+<sc-for list="{{rooms}}" as="r" hint-placeholder-count="6">
+<button type="button" class="kbtn kspace" onClick="{{r.go}}" aria-current="{{r.current}}" style="{{r.style}}">
+<span aria-hidden="true" style="flex: 0 0 8px; width: 8px; height: 8px; border-radius: 999px; background: {{r.accent}}; margin-top: 6px"></span>
+<span style="display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1">
+<span style="font-size: 13px; font-weight: 500; color: #1F2A37; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{r.title}}</span>
+<span style="display: flex; align-items: center; gap: 6px">
+<span aria-hidden="true" style="width: 44px; height: 4px; border-radius: 999px; background: #E6EEF5; overflow: hidden; display: flex"><span style="width: {{r.pctW}}; background: #2F6FA8"></span></span>
+<span style="font-size: 11px; color: #5F6B78">{{r.sub}}</span>
+</span>
+</span>
+</button>
+</sc-for>
+</div>
+<div style="padding: 12px 14px 16px; border-top: 1px solid #E8E0D1; display: flex; flex-direction: column; gap: 12px">
+<div role="group" aria-label="{{t.langLabel}}" style="display: flex; gap: 2px; padding: 3px; background: #F1EBDF; border: 1px solid #E4DCCB; border-radius: 9px">
+<button type="button" class="kbtn" aria-pressed="{{isEn}}" onClick="{{setEn}}" style="{{enBtn}}">English</button>
+<button type="button" class="kbtn" aria-pressed="{{isFa}}" onClick="{{setFa}}" style="{{faBtn}}">فارسی</button>
+</div>
+<div style="display: flex; align-items: center; gap: 10px">
+<span aria-hidden="true" style="flex: 0 0 36px; width: 36px; height: 36px; border-radius: 999px; background: #C9D9EC; color: #1F2A37; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center">{{me.i}}</span>
+<span style="display: flex; flex-direction: column; min-width: 0; flex: 1">
+<span style="font-size: 13px; font-weight: 600; color: #1F2A37">{{me.n}}</span>
+<span style="font-size: 11.5px; color: #5F6B78">{{t.owner}}</span>
+</span>
+<button type="button" class="kbtn kghost" aria-label="{{t.accountMenu}}" style="width: 30px; height: 30px; border: 0; background: transparent; border-radius: 8px; color: #5F6B78; display: flex; align-items: center; justify-content: center; cursor: pointer"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.7"></circle><circle cx="12" cy="12" r="1.7"></circle><circle cx="19" cy="12" r="1.7"></circle></svg></button>
 </div>
 </div>
-<nav aria-label="{{t.navLabel}}" style="display: flex; gap: 2px; padding: 3px; background: #F1EBDF; border: 1px solid #E4DCCB; border-radius: 10px">
-<button type="button" class="kbtn" aria-current="{{boardCurrent}}" onClick="{{goBoard}}" style="{{navBoard}}">
-<svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="5" height="16" rx="1.5"></rect><rect x="10" y="4" width="5" height="10" rx="1.5"></rect><rect x="17" y="4" width="4" height="13" rx="1.5"></rect></svg>{{t.board}}</button>
-<button type="button" class="kbtn" aria-current="{{chatCurrent}}" onClick="{{goChat}}" style="{{navChat}}">
-<svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12Z"></path></svg>{{t.chat}}<span style="min-width: 18px; height: 18px; padding: 0 5px; box-sizing: border-box; border-radius: 999px; background: #B42318; color: #FFFFFF; font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center">{{chatBadge}}</span></button>
+</aside>
+<div style="flex: 1; min-width: 0; display: flex; flex-direction: column">
+<header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; min-height: 64px; box-sizing: border-box; padding: 12px 28px; background: #FBF8F2; border-bottom: 1px solid #E8E0D1">
+<nav aria-label="{{t.crumbLabel}}" style="display: flex; align-items: center; gap: 8px; font-size: 13px; min-width: 0">
+<span style="color: #5F6B78">{{t.workspace}}</span><span aria-hidden="true" style="color: #A8B4C2">/</span><span aria-current="page" style="font-weight: 600; color: #1E3A5F; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{crumb}}</span>
 </nav>
 <sc-if value="{{isBoard}}" hint-placeholder-val="{{ true }}">
 <div aria-label="{{t.summaryLabel}}" style="display: flex; align-items: center; flex-wrap: wrap; gap: 8px">
@@ -59,9 +107,10 @@ body{margin:0;background:#F6F1E7}
 </div>
 </sc-if>
 <div style="margin-inline-start: auto; display: flex; align-items: center; gap: 10px">
-<div role="group" aria-label="{{t.langLabel}}" style="display: flex; gap: 2px; padding: 3px; background: #F1EBDF; border: 1px solid #E4DCCB; border-radius: 9px">
-<button type="button" class="kbtn" aria-pressed="{{isEn}}" onClick="{{setEn}}" style="{{enBtn}}">EN</button>
-<button type="button" class="kbtn" aria-pressed="{{isFa}}" onClick="{{setFa}}" style="{{faBtn}}">فا</button>
+<div aria-label="{{t.teamLabel}}" style="display: flex; align-items: center; padding-inline-start: 6px">
+<sc-for list="{{team}}" as="tm" hint-placeholder-count="4">
+<span title="{{tm.n}}" style="width: 28px; height: 28px; margin-inline-start: -6px; border-radius: 999px; background: {{tm.bg}}; color: #1F2A37; font-size: 10.5px; font-weight: 700; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 2px #FBF8F2">{{tm.i}}</span>
+</sc-for>
 </div>
 <sc-if value="{{isBoard}}" hint-placeholder-val="{{ true }}">
 <div role="group" aria-label="{{t.densityLabel}}" style="display: flex; gap: 2px; padding: 3px; background: #F1EBDF; border: 1px solid #E4DCCB; border-radius: 9px">
@@ -70,11 +119,8 @@ body{margin:0;background:#F6F1E7}
 </div>
 </sc-if>
 <button type="button" class="kbtn kghost" onClick="{{openHelp}}" aria-label="{{t.shortcuts}}" style="width: 36px; height: 36px; border: 1px solid #E4DCCB; background: transparent; border-radius: 9px; color: #4B5B6B; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer">?</button>
-<div aria-label="{{t.teamLabel}}" style="display: flex; align-items: center; padding-inline-start: 6px">
-<sc-for list="{{team}}" as="tm" hint-placeholder-count="4">
-<span title="{{tm.n}}" style="width: 28px; height: 28px; margin-inline-start: -6px; border-radius: 999px; background: {{tm.bg}}; color: #1F2A37; font-size: 10.5px; font-weight: 700; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 2px #FBF8F2">{{tm.i}}</span>
-</sc-for>
-</div>
+<button type="button" class="kbtn kprimary" style="display: flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px; border: 0; background: #2F6FA8; border-radius: 9px; font: inherit; font-size: 13px; font-weight: 600; color: #FFFFFF; cursor: pointer; box-shadow: 0 4px 12px rgba(47,111,168,.22)">
+<svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>{{t.newCard}}</button>
 </div>
 </header>
 
@@ -160,31 +206,7 @@ body{margin:0;background:#F6F1E7}
 </sc-if>
 
 <sc-if value="{{isChat}}" hint-placeholder-val="{{ false }}">
-<div style="flex: 1; display: flex; flex-wrap: wrap; height: 828px; min-height: 0">
-<aside aria-label="{{t.spacesLabel}}" class="kscroll" style="flex: 0 0 272px; width: 272px; box-sizing: border-box; height: 100%; overflow-y: auto; padding: 18px 12px; background: #FBF8F2; border-inline-end: 1px solid #E8E0D1; display: flex; flex-direction: column; gap: 6px">
-<span style="padding: 0 10px 6px; font-size: 11.5px; font-weight: 600; letter-spacing: .02em; color: #5F6B78">{{t.teamSpace}}</span>
-<button type="button" class="kbtn kspace" onClick="{{goGeneral}}" aria-current="{{generalCurrent}}" style="{{generalStyle}}">
-<span aria-hidden="true" style="width: 32px; height: 32px; border-radius: 9px; background: #2F6FA8; color: #FFFFFF; font-family: 'Geist', sans-serif; font-size: 16px; font-weight: 700; display: flex; align-items: center; justify-content: center">#</span>
-<span style="display: flex; flex-direction: column; min-width: 0; flex: 1">
-<span style="font-size: 13.5px; font-weight: 600; color: #1F2A37">{{t.general}}</span>
-<span style="font-size: 12px; color: #5F6B78">{{t.generalSub}}</span>
-</span>
-</button>
-<span style="padding: 14px 10px 6px; font-size: 11.5px; font-weight: 600; letter-spacing: .02em; color: #5F6B78">{{t.rooms}}</span>
-<sc-for list="{{rooms}}" as="r" hint-placeholder-count="6">
-<button type="button" class="kbtn kspace" onClick="{{r.go}}" aria-current="{{r.current}}" style="{{r.style}}">
-<span aria-hidden="true" style="flex: 0 0 8px; width: 8px; height: 8px; border-radius: 999px; background: {{r.accent}}; margin-top: 6px"></span>
-<span style="display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1">
-<span style="font-size: 13px; font-weight: 600; color: #1F2A37; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{r.title}}</span>
-<span style="display: flex; align-items: center; gap: 6px">
-<span aria-hidden="true" style="width: 48px; height: 4px; border-radius: 999px; background: #E6EEF5; overflow: hidden; display: flex"><span style="width: {{r.pctW}}; background: #2F6FA8"></span></span>
-<span style="font-size: 11.5px; color: #5F6B78">{{r.sub}}</span>
-</span>
-</span>
-</button>
-</sc-for>
-</aside>
-
+<div style="flex: 1; display: flex; flex-wrap: wrap; height: 836px; min-height: 0">
 <section aria-label="{{conv.title}}" style="flex: 999 1 420px; min-width: 0; height: 100%; display: flex; flex-direction: column; background: #F6F1E7">
 <div style="display: flex; align-items: center; gap: 12px; padding: 14px 24px; border-bottom: 1px solid #E8E0D1; background: #FFFDF8">
 <div style="display: flex; flex-direction: column; min-width: 0; flex: 1">
@@ -308,6 +330,7 @@ body{margin:0;background:#F6F1E7}
 </div>
 </sc-if>
 
+</div>
 <sc-if value="{{help}}" hint-placeholder-val="{{ false }}">
 <div style="position: absolute; inset: 0; z-index: 10; background: rgba(31,42,55,.32); backdrop-filter: blur(2px); display: flex; align-items: flex-start; justify-content: center; padding: 96px 20px">
 <div role="dialog" aria-modal="true" aria-labelledby="v2-help-title" style="width: 100%; max-width: 420px; background: #FFFDF8; border: 1px solid #E4DCCB; border-radius: 16px; box-shadow: 0 24px 64px rgba(31,42,55,.22); padding: 20px 22px; display: flex; flex-direction: column; gap: 14px">
@@ -359,7 +382,7 @@ class Component extends DCLogic {
     const TODAY = 17;
     const T = {
       en: {
-        appSub: 'Project board · 5 columns', navLabel: 'Main', board: 'Board', chat: 'Chat', summaryLabel: 'Board summary', langLabel: 'Language', densityLabel: 'Card density', teamLabel: 'Team',
+        appSub: 'Project board · 5 columns', navLabel: 'Main', sidebarLabel: 'Sidebar', wsBadge: 'TEAM', workspace: 'Workspace', wsName: 'Carabin team', channels: 'CHANNELS', owner: 'Workspace owner', accountMenu: 'Account menu', crumbLabel: 'Breadcrumb', crumbBoard: 'Project board', newCard: 'New card', board: 'Board', chat: 'Chat', summaryLabel: 'Board summary', langLabel: 'Language', densityLabel: 'Card density', teamLabel: 'Team',
         comfy: 'Comfortable', compact: 'Compact', shortcuts: 'Keyboard shortcuts', close: 'Close',
         cols: ['Ideas', 'To do', 'In progress', 'Review', 'Done'], add: 'Add card', addTo: 'Add card to ', menuOf: ' column menu', expand: 'Expand ',
         rename: 'Rename column', wip: 'Set WIP limit', collapse: 'Collapse column', none: 'None', cards: ' cards', atLimit: 'At WIP limit', overLimit: 'Over WIP limit',
@@ -374,7 +397,7 @@ class Component extends DCLogic {
         sc: ['New card in focused column', 'Open task room', 'Move card to previous / next column', 'Delete focused card', 'Switch Board / Chat', 'Switch language', 'Show shortcuts', 'Close dialog']
       },
       fa: {
-        appSub: 'تخته‌ی پروژه · ۵ ستون', navLabel: 'بخش‌ها', board: 'تخته', chat: 'گفتگو', summaryLabel: 'خلاصه‌ی تخته', langLabel: 'زبان', densityLabel: 'تراکم کارت', teamLabel: 'تیم',
+        appSub: 'تخته‌ی پروژه · ۵ ستون', navLabel: 'بخش‌ها', sidebarLabel: 'نوار کناری', wsBadge: 'تیم', workspace: 'فضای کار', wsName: 'تیم کارابین', channels: 'کانال‌ها', owner: 'مالک فضای کار', accountMenu: 'منوی حساب', crumbLabel: 'مسیر صفحه', crumbBoard: 'تخته‌ی پروژه', newCard: 'کارت جدید', board: 'تخته', chat: 'گفتگو', summaryLabel: 'خلاصه‌ی تخته', langLabel: 'زبان', densityLabel: 'تراکم کارت', teamLabel: 'تیم',
         comfy: 'راحت', compact: 'فشرده', shortcuts: 'میانبرهای صفحه‌کلید', close: 'بستن',
         cols: ['ایده‌ها', 'برای انجام', 'در حال انجام', 'بازبینی', 'انجام‌شده'], add: 'افزودن کارت', addTo: 'افزودن کارت به ', menuOf: ' - منوی ستون', expand: 'باز کردن ',
         rename: 'تغییر نام ستون', wip: 'محدودیت تعداد کار', collapse: 'جمع کردن ستون', none: 'ندارد', cards: ' کارت', atLimit: 'در حد مجاز', overLimit: 'بیش از حد مجاز',
@@ -508,14 +531,14 @@ class Component extends DCLogic {
     const doneN = live.filter((x) => x.col === 4).length;
     const pct = total ? Math.round((doneN / total) * 100) : 0;
     const seg = (on, extra) => 'height: 28px; padding: 0 10px; border: 0; border-radius: 6px; font: inherit; font-size: 12px; font-weight: 500; cursor: pointer; ' + (extra || '') + (on ? 'background: #FFFFFF; color: #1F2A37; box-shadow: 0 1px 2px rgba(31,42,55,.10)' : 'background: transparent; color: #5F6B78');
-    const navSeg = (on) => 'display: flex; align-items: center; gap: 7px; height: 32px; padding: 0 12px; border: 0; border-radius: 7px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; ' + (on ? 'background: #FFFFFF; color: #1E3A5F; box-shadow: 0 1px 2px rgba(31,42,55,.10)' : 'background: transparent; color: #5F6B78');
+    const navSeg = (on) => 'display: flex; align-items: center; gap: 10px; width: 100%; height: 40px; padding: 0 10px; border: 0; border-radius: 10px; font: inherit; font-size: 13.5px; font-weight: 600; text-align: start; cursor: pointer; ' + (on ? 'background: #E6EEF5; color: #1E3A5F; box-shadow: inset 0 0 0 1px #C9D7E3' : 'background: transparent; color: #4B5B6B');
     const space = this.state.space;
     const spaceCard = space !== 'general' ? byId[space] : null;
-    const spaceStyle = (on) => 'display: flex; align-items: flex-start; gap: 10px; width: 100%; padding: 9px 10px; border: 0; border-radius: 10px; font: inherit; text-align: start; cursor: pointer; ' + (on ? 'background: #E6EEF5; box-shadow: inset 0 0 0 1px #C9D7E3' : 'background: transparent');
+    const spaceStyle = (on) => 'display: flex; align-items: flex-start; gap: 10px; width: 100%; padding: 8px 10px; border: 0; border-radius: 10px; font: inherit; text-align: start; cursor: pointer; ' + (on ? 'background: #E6EEF5; box-shadow: inset 0 0 0 1px #C9D7E3' : 'background: transparent');
     const rooms = live.map((x) => ({
       title: L(x.k.t), accent: COLS[x.col].accent, pctW: (x.col === 4 ? 100 : x.g) + '%',
       sub: num(x.col === 4 ? 100 : x.g) + (fa ? '٪' : '%') + ' · ' + num(x.mem.length) + t.membersN,
-      current: space === x.k.id ? 'true' : 'false', style: spaceStyle(space === x.k.id), go: () => this.setState({ space: x.k.id })
+      current: view === 'chat' && space === x.k.id ? 'true' : 'false', style: spaceStyle(view === 'chat' && space === x.k.id), go: () => this.setState({ view: 'chat', space: x.k.id })
     }));
     const fmtEvent = (m) => {
       const a = m.who === ME ? t.you : L(M[m.who].n);
@@ -613,7 +636,7 @@ class Component extends DCLogic {
       goBoard: () => this.setState({ view: 'board' }), goChat: () => this.setState({ view: 'chat' }),
       chatBadge: num(3),
       isEn: !fa, isFa: fa,
-      enBtn: seg(!fa, "font-family: 'Geist', sans-serif; "), faBtn: seg(fa, "font-family: 'Vazirmatn', sans-serif; "),
+      enBtn: seg(!fa, "flex: 1; font-family: 'Geist', sans-serif; "), faBtn: seg(fa, "flex: 1; font-family: 'Vazirmatn', sans-serif; "),
       setEn: () => this.setState({ lang: 'en' }), setFa: () => this.setState({ lang: 'fa' }),
       isComfy: comfy, isCompact: !comfy, comfyBtn: seg(comfy), compactBtn: seg(!comfy),
       setComfy: () => this.setState({ density: 'comfortable' }), setCompact: () => this.setState({ density: 'compact' }),
@@ -622,8 +645,10 @@ class Component extends DCLogic {
       team: Object.keys(M).map(who),
       columns: columns,
       rooms: rooms,
-      generalCurrent: space === 'general' ? 'true' : 'false', generalStyle: spaceStyle(space === 'general'),
-      goGeneral: () => this.setState({ space: 'general' }),
+      generalCurrent: view === 'chat' && space === 'general' ? 'true' : 'false', generalStyle: spaceStyle(view === 'chat' && space === 'general'),
+      goGeneral: () => this.setState({ view: 'chat', space: 'general' }),
+      boardCount: num(total), me: who(ME),
+      crumb: view === 'board' ? t.crumbBoard : conv.title,
       conv: conv, hasTask: !!spaceCard, tp: tp,
       draft: draft, noDraft: !draft.trim(), draftOpacity: draft.trim() ? '1' : '.55',
       onDraft: (e) => this.setState({ draft: e.target.value }),

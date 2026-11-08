@@ -6,6 +6,7 @@ import CardDialog from "@/components/CardDialog";
 import Chat from "@/components/Chat";
 import Header from "@/components/Header";
 import HelpDialog from "@/components/HelpDialog";
+import Sidebar from "@/components/Sidebar";
 import UndoToast from "@/components/UndoToast";
 import { useStore } from "@/lib/store";
 import { useShortcuts } from "@/lib/useShortcuts";
@@ -28,9 +29,12 @@ export default function Home() {
   if (!mounted) return null;
 
   return (
-    <div className="flex h-dvh flex-col">
-      <Header />
-      {view === "board" ? <Board /> : <Chat />}
+    <div className="flex h-dvh">
+      <Sidebar />
+      <div className="flex min-w-0 flex-1 flex-col">
+        <Header />
+        {view === "board" ? <Board /> : <Chat />}
+      </div>
       <UndoToast />
       {dialog?.type === "help" && <HelpDialog />}
       {dialog?.type === "card" && <CardDialog key={dialog.cardId ?? "new"} columnId={dialog.columnId} cardId={dialog.cardId} />}

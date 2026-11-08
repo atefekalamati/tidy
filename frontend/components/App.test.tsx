@@ -10,6 +10,7 @@ import Chat from "./Chat";
 import Header from "./Header";
 import HelpDialog from "./HelpDialog";
 import JalaliDatePicker from "./JalaliDatePicker";
+import Sidebar from "./Sidebar";
 import UndoToast, { UNDO_MS } from "./UndoToast";
 
 // jsdom has no canvas; compression itself is covered in lib/compressImage.test.ts.
@@ -34,25 +35,106 @@ function press(init: KeyboardEventInit, target: EventTarget = document.body) {
 }
 
 describe("Header", () => {
-  it("shows the brand, summary and unread badge", () => {
+  const crumb = () => within(screen.getByRole("navigation", { name: "Breadcrumb" }));
+
+  it("shows the breadcrumb and summary on the Board", () => {
     render(<Header />);
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Tidy.");
+    expect(crumb().getByText("Workspace")).toBeInTheDocument();
+    expect(crumb().getByText("Project board")).toHaveAttribute("aria-current", "page");
     const summary = within(screen.getByTestId("summary"));
     expect(summary.getByText("10 cards")).toBeInTheDocument();
     expect(summary.getByText("20% done")).toBeInTheDocument();
-    expect(screen.getByTestId("unread-badge")).toHaveTextContent("3");
+    expect(screen.getByRole("group", { name: "Card density" })).toBeInTheDocument();
   });
 
-  it("switches language, density and section", async () => {
+  it("shows the conversation name and hides board controls in Chat", () => {
+    act(() => store().openRoom("c7"));
+    render(<Header />);
+    expect(crumb().getByText("Task chat room")).toBeInTheDocument();
+    expect(screen.queryByTestId("summary")).not.toBeInTheDocument();
+    expect(screen.queryByRole("group", { name: "Card density" })).not.toBeInTheDocument();
+    act(() => store().openRoom("general"));
+    expect(crumb().getByText("# General")).toBeInTheDocument();
+  });
+
+  it("changes density and opens the shortcuts and new card dialogs", async () => {
     render(<Header />);
     await userEvent.click(screen.getByRole("button", { name: "Compact" }));
     expect(store().density).toBe("compact");
-    await userEvent.click(screen.getByRole("button", { name: "فا" }));
-    expect(store().language).toBe("fa");
+    await userEvent.click(screen.getByRole("button", { name: "Keyboard shortcuts" }));
+    expect(store().dialog).toEqual({ type: "help" });
+    await userEvent.click(screen.getByRole("button", { name: "New card" }));
+    expect(store().dialog).toEqual({ type: "card", columnId: "todo" });
+  });
+
+  it("is translated", () => {
+    act(() => store().setLanguage("fa"));
+    render(<Header />);
+    const faCrumb = within(screen.getByRole("navigation", { name: "مسیر صفحه" }));
+    expect(faCrumb.getByText("فضای کار")).toBeInTheDocument();
+    expect(faCrumb.getByText("تخته‌ی پروژه")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "کارت جدید" })).toBeInTheDocument();
     expect(screen.getByText("۱۰ کارت")).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: /گفتگو/ }));
+  });
+});
+
+describe("Sidebar", () => {
+  const room = (title: string) => screen.getByRole("button", { name: new RegExp(`^${title}`) });
+
+  it("shows the brand, workspace, counts and profile", () => {
+    render(<Sidebar />);
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Tidy.");
+    expect(screen.getByText("TEAM")).toBeInTheDocument();
+    expect(screen.getByTestId("workspace")).toHaveTextContent("Carabin team");
+    expect(within(screen.getByTestId("workspace")).queryByRole("button")).not.toBeInTheDocument();
+    expect(screen.getByTestId("board-count")).toHaveTextContent("10");
+    expect(screen.getByTestId("unread-badge")).toHaveTextContent("3");
+    expect(screen.getByTestId("profile")).toHaveTextContent("Sara Ahmadi");
+    expect(screen.getByTestId("profile")).toHaveTextContent("Workspace owner");
+    expect(screen.getByRole("button", { name: "Account menu" })).toBeInTheDocument();
+  });
+
+  it("lists every room with its progress and member count", () => {
+    render(<Sidebar />);
+    expect(screen.getAllByTestId("room")).toHaveLength(10);
+    expect(room("Task chat room")).toHaveTextContent("45% · 3 members");
+    expect(room("Set up Next.js project")).toHaveTextContent("100% · 1 member");
+  });
+
+  it("switches between Board and Chat", async () => {
+    render(<Sidebar />);
+    await userEvent.click(screen.getByRole("button", { name: /^Chat/ }));
     expect(store().view).toBe("chat");
-    expect(screen.queryByTestId("summary")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Chat/ })).toHaveAttribute("aria-current", "page");
+    await userEvent.click(screen.getByRole("button", { name: /^Project board/ }));
+    expect(store().view).toBe("board");
+  });
+
+  it("opens a room or General in the Chat view and clears its unread count", async () => {
+    render(<Sidebar />);
+    await userEvent.click(room("Task chat room"));
+    expect(store()).toMatchObject({ view: "chat", activeSpace: "c7", unread: { general: 2 } });
+    await userEvent.click(screen.getByRole("button", { name: "General" }));
+    expect(store()).toMatchObject({ view: "chat", activeSpace: "general", unread: {} });
+  });
+
+  it("highlights the active item only while Chat is open", () => {
+    act(() => store().openRoom("c7"));
+    render(<Sidebar />);
+    expect(room("Task chat room")).toHaveAttribute("aria-current", "true");
+    act(() => store().setView("board"));
+    expect(room("Task chat room")).not.toHaveAttribute("aria-current");
+    expect(screen.getByRole("button", { name: "General" })).not.toHaveAttribute("aria-current");
+  });
+
+  it("switches language", async () => {
+    render(<Sidebar />);
+    await userEvent.click(screen.getByRole("button", { name: "فارسی" }));
+    expect(store().language).toBe("fa");
+    expect(screen.getByTestId("workspace")).toHaveTextContent("تیم کارابین");
+    expect(screen.getByTestId("profile")).toHaveTextContent("مالک فضای کار");
+    expect(screen.getByTestId("board-count")).toHaveTextContent("۱۰");
+    expect(screen.getByText("کانال‌ها")).toBeInTheDocument();
   });
 });
 

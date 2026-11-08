@@ -1,4 +1,4 @@
-import { PNG, button, card, column, composer, expect, makeImage, openRoom, reload, setFa, test } from "./helpers";
+import { PNG, boardNav, button, card, column, composer, expect, makeImage, openRoom, reload, setEn, setFa, test } from "./helpers";
 
 const panel = (page: Parameters<typeof composer>[0]) => page.getByRole("complementary", { name: "Task info" });
 
@@ -58,7 +58,7 @@ test.describe("in the chat section", () => {
     await expect(page.getByRole("complementary", { name: "اطلاعات کار" })).toContainText("فردا");
     await expect(page.getByRole("textbox", { name: "پیام بنویس…" })).toBeVisible();
 
-    const spaces = (await page.getByRole("complementary", { name: "گفتگوها" }).boundingBox())!;
+    const spaces = (await page.getByRole("complementary", { name: "نوار کناری" }).boundingBox())!;
     const info = (await page.getByRole("complementary", { name: "اطلاعات کار" }).boundingBox())!;
     expect(spaces.x).toBeGreaterThan(info.x);
 
@@ -80,7 +80,7 @@ test.describe("in the chat section", () => {
 
     await setFa(page);
     await expect(page.getByText("First note")).toBeVisible();
-    await button(page, "EN").click();
+    await setEn(page);
 
     await reload(page);
     await expect(page.getByText("First note")).toBeVisible();
@@ -189,7 +189,7 @@ test.describe("in the chat section", () => {
 
     await reload(page);
     await expect(page.getByRole("heading", { level: 2, name: "Prepare the release notes" })).toBeVisible();
-    await button(page, "Board").click();
+    await boardNav(page).click();
     const created = card(column(page, "todo"), "Prepare the release notes");
     await expect(created).toContainText("Medium");
     await expect(created.getByTestId("card-progress")).toHaveText("0%");
@@ -209,7 +209,7 @@ test.describe("task panel", () => {
     await reload(page);
     await expect(page.getByTestId("panel-progress")).toHaveText("70%");
     await expect(page.getByTestId("event")).toHaveText(/You set progress to 70%/);
-    await button(page, "Board").click();
+    await boardNav(page).click();
     await expect(card(page, "Jalali date picker").getByTestId("card-progress")).toHaveText("70%");
   });
 
@@ -229,7 +229,7 @@ test.describe("task panel", () => {
     await reload(page);
     await expect(page.getByTestId("panel-member")).toHaveCount(1);
     await expect(page.getByTestId("event")).toHaveCount(3);
-    await button(page, "Board").click();
+    await boardNav(page).click();
     await expect(card(page, "Keyboard shortcut sheet").getByTitle("Reza Mohammadi")).toBeVisible();
   });
 
@@ -247,7 +247,7 @@ test.describe("task panel", () => {
 
   test("a card deleted on the board leaves nothing broken in chat", async ({ page }) => {
     await openRoom(page, "Task chat room");
-    await button(page, "Board").click();
+    await boardNav(page).click();
     const target = card(page, "Task chat room");
     await target.hover();
     await button(target, "Delete card").click();

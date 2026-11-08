@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import { button, card, column, drag, expect, pickUp, reload, setFa, test } from "./helpers";
+import { boardNav, button, card, column, drag, expect, pickUp, reload, setEn, setFa, test } from "./helpers";
 
 test("first visit shows the English sample board", async ({ page }) => {
   await expect(page).toHaveTitle("Tidy - Kanban board");
@@ -51,7 +51,7 @@ test("language switch changes direction, font, digits and sample data on the boa
   await expect(html).toHaveAttribute("dir", "rtl");
   await expect(column(page, "doing")).toContainText("در حال انجام");
 
-  await button(page, "EN").click();
+  await setEn(page);
   await expect(html).toHaveAttribute("dir", "ltr");
   await expect(column(page, "doing")).toContainText("In progress");
 });
@@ -98,7 +98,7 @@ test("moves a card with the keyboard", async ({ page }) => {
   await page.keyboard.press("Space");
   await expect(page.getByTestId("drag-overlay")).toBeHidden();
   await expect(card(column(page, "doing"), "Column unit tests")).toBeVisible();
-  await expect(button(page, "Board")).toHaveAttribute("aria-current", "page");
+  await expect(boardNav(page)).toHaveAttribute("aria-current", "page");
 
   await reload(page);
   await expect(card(column(page, "doing"), "Column unit tests")).toBeVisible();
@@ -414,7 +414,7 @@ test.describe("undo delete", () => {
     const before = await titles();
     await card(page, "Task chat room").getByRole("button", { name: "Task chat room" }).click();
     await page.getByRole("slider", { name: "Progress" }).fill("70");
-    await button(page, "Board").click();
+    await boardNav(page).click();
     const rooms = page.getByTestId("room");
 
     const target = card(page, "Task chat room");
@@ -436,7 +436,7 @@ test.describe("undo delete", () => {
     await expect(page.getByTestId("message")).toHaveCount(3);
     await expect(page.getByTestId("event")).toHaveCount(3);
     await expect(rooms.nth(6)).toContainText("Task chat room");
-    await page.getByRole("button", { name: /^# ?General|General/ }).first().click();
+    await button(page, "General").click();
     await expect(page.getByTestId("task-created")).toContainText("Task chat room");
   });
 

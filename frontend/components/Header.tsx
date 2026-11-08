@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { useT } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
 import { toISODate } from "@/lib/utils";
-import { Avatar, BoardIcon, ChatIcon, Segmented, SegmentButton, cx } from "./ui";
+import { Avatar, PlusIcon, Segmented, SegmentButton } from "./ui";
 
 function Stat({ children }: { children: ReactNode }) {
   return (
@@ -41,81 +41,36 @@ function Summary() {
   );
 }
 
-function NavButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: ReactNode }) {
-  return (
-    <button
-      type="button"
-      aria-current={active ? "page" : undefined}
-      onClick={onClick}
-      className={cx(
-        "flex h-9 items-center gap-[7px] rounded-[7px] px-3 text-[13px] font-semibold transition-colors",
-        active ? "bg-surface-hover text-heading shadow-segment" : "text-muted",
-      )}
-    >
-      {children}
-    </button>
-  );
-}
-
 export default function Header() {
-  const { t, n, language } = useT();
-  const view = useStore((s) => s.view);
+  const { t, L } = useT();
+  const isBoard = useStore((s) => s.view === "board");
   const density = useStore((s) => s.density);
   const members = useStore((s) => s.members);
-  const unread = useStore((s) => Object.values(s.unread).reduce((sum, x) => sum + x, 0));
-  const setView = useStore((s) => s.setView);
-  const setLanguage = useStore((s) => s.setLanguage);
+  const room = useStore((s) => s.cards[s.activeSpace]);
   const setDensity = useStore((s) => s.setDensity);
   const openDialog = useStore((s) => s.openDialog);
-  const isBoard = view === "board";
+  const crumb = isBoard ? t.crumbBoard : room ? L(room.title) : `# ${t.general}`;
 
   return (
-    <header className="flex flex-wrap items-center gap-x-6 gap-y-3.5 border-b border-hairline bg-chrome px-8 py-3.5">
-      <div className="flex items-center gap-3">
-        <span aria-hidden className="grid size-[34px] place-items-center rounded-[9px] bg-primary text-white shadow-[0_4px_12px_rgba(47,111,168,.25)]">
-          <BoardIcon size={18} />
+    <header className="flex min-h-16 flex-wrap items-center gap-x-5 gap-y-3 border-b border-hairline bg-chrome px-7 py-3">
+      <nav aria-label={t.crumbLabel} className="flex min-w-0 items-center gap-2 text-[13px]">
+        <span className="text-muted">{t.workspace}</span>
+        <span aria-hidden className="text-crumb-separator">
+          /
         </span>
-        <div>
-          <h1 className="font-brand text-[22px]/7 font-bold tracking-[-0.03em] text-heading">
-            <span dir="ltr">
-              Tidy<span aria-hidden className="text-primary">.</span>
-            </span>
-          </h1>
-          <p className="text-[12px]/4 text-muted">{t.appSub}</p>
-        </div>
-      </div>
-
-      <nav aria-label={t.navLabel} className="flex gap-0.5 rounded-[10px] border border-segment-border bg-segment p-[3px]">
-        <NavButton active={isBoard} onClick={() => setView("board")}>
-          <BoardIcon size={15} />
-          {t.board}
-        </NavButton>
-        <NavButton active={!isBoard} onClick={() => setView("chat")}>
-          <ChatIcon size={15} />
-          {t.chat}
-          {unread > 0 && (
-            <span
-              data-testid="unread-badge"
-              title={t.unread}
-              className="inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-unread px-[5px] text-[11px] font-semibold text-white"
-            >
-              {n(unread)}
-            </span>
-          )}
-        </NavButton>
+        <span aria-current="page" dir="auto" className="truncate font-semibold text-heading">
+          {crumb}
+        </span>
       </nav>
 
       {isBoard && <Summary />}
 
       <div className="ms-auto flex items-center gap-2.5">
-        <Segmented label={t.langLabel}>
-          <SegmentButton active={language === "en"} onClick={() => setLanguage("en")} className="font-brand">
-            EN
-          </SegmentButton>
-          <SegmentButton active={language === "fa"} onClick={() => setLanguage("fa")} className="[font-family:var(--font-vazirmatn)]">
-            فا
-          </SegmentButton>
-        </Segmented>
+        <div role="group" aria-label={t.teamLabel} className="flex items-center ps-1.5">
+          {Object.values(members).map((m) => (
+            <Avatar key={m.id} member={m} className="-ms-1.5 ring-2 ring-chrome" />
+          ))}
+        </div>
         {isBoard && (
           <Segmented label={t.densityLabel}>
             <SegmentButton active={density === "comfortable"} onClick={() => setDensity("comfortable")}>
@@ -134,11 +89,14 @@ export default function Header() {
         >
           ?
         </button>
-        <div role="group" aria-label={t.teamLabel} className="flex items-center ps-1.5">
-          {Object.values(members).map((m) => (
-            <Avatar key={m.id} member={m} className="-ms-1.5 ring-2 ring-chrome" />
-          ))}
-        </div>
+        <button
+          type="button"
+          onClick={() => openDialog({ type: "card", columnId: "todo" })}
+          className="flex h-9 items-center gap-1.5 rounded-[9px] bg-primary px-3.5 text-[13px] font-semibold text-white shadow-[0_4px_12px_rgba(47,111,168,.22)] transition-colors hover:bg-primary-hover"
+        >
+          <PlusIcon size={15} />
+          {t.newCard}
+        </button>
       </div>
     </header>
   );

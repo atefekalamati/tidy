@@ -58,6 +58,11 @@ export const ChevronIcon = ({ className, ...p }: IconProps) => (
     <path d="M9 6l6 6-6 6" />
   </Stroke>
 );
+export const ChevronDownIcon = (p: IconProps) => (
+  <Stroke {...p}>
+    <path d="M6 9l6 6 6-6" />
+  </Stroke>
+);
 export const TrashIcon = (p: IconProps) => (
   <Stroke {...p}>
     <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" />
@@ -131,6 +136,7 @@ const avatarSizes = {
   26: "size-[26px] text-[10px]",
   28: "size-7 text-[10.5px]",
   30: "size-[30px] text-[10.5px]",
+  36: "size-9 text-[12px]",
 };
 
 export function Avatar({ member, size = 28, className }: { member: Member; size?: keyof typeof avatarSizes; className?: string }) {

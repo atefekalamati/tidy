@@ -3,9 +3,17 @@ import type { ColumnId, Priority } from "../types";
 const plural = (n: string, word: string) => `${n} ${word}${n === "1" ? "" : "s"}`;
 
 export const en = {
-  appSub: "Project board · 5 columns",
   navLabel: "Main",
-  board: "Board",
+  sidebarLabel: "Sidebar",
+  wsBadge: "TEAM",
+  workspace: "Workspace",
+  wsName: "Carabin team",
+  channels: "CHANNELS",
+  owner: "Workspace owner",
+  accountMenu: "Account menu",
+  crumbLabel: "Breadcrumb",
+  crumbBoard: "Project board",
+  newCard: "New card",
   chat: "Chat",
   unread: "Unread messages",
   summaryLabel: "Board summary",
@@ -47,8 +55,6 @@ export const en = {
   cardDeleted: "Card deleted",
   undo: "Undo",
   messageCount: (n: string) => plural(n, "message"),
-  spacesLabel: "Conversations",
-  teamSpace: "TEAM SPACE",
   general: "General",
   generalSub: (n: string) => `Whole team · ${n} members`,
   rooms: "TASK ROOMS",

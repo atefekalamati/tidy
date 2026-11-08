@@ -34,7 +34,9 @@ export const button = (scope: Page | Locator, name: string | RegExp) =>
   scope.getByRole("button", typeof name === "string" ? { name, exact: true } : { name });
 export const composer = (page: Page) => page.getByRole("textbox", { name: "Write a message…" });
 
-export const setFa = (page: Page) => button(page, "فا").click();
+export const setFa = (page: Page) => button(page, "فارسی").click();
+export const setEn = (page: Page) => button(page, "English").click();
+export const boardNav = (page: Page) => page.getByRole("button", { name: /^Project board/ });
 
 export async function openRoom(page: Page, title: string) {
   await card(page, title).getByRole("button", { name: title }).click();
