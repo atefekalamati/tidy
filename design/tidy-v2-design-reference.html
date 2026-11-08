@@ -1,0 +1,641 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tidy - Kanban board</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@500&amp;family=Vazirmatn:wght@400;500;600;700;800&amp;display=swap">
+<style>
+body{margin:0;background:#F6F1E7}
+.kcard{transition:background-color .15s ease,border-color .15s ease,box-shadow .15s ease,transform .15s ease}
+.kcard:hover{background:#FFFFFF;border-color:#B9CDE0;box-shadow:0 6px 18px rgba(31,58,95,.10);transform:translateY(-1px)}
+.kopen{all:unset;cursor:pointer;display:block;font-size:14px;line-height:20px;font-weight:500;color:#1F2A37}
+.kopen::after{content:"";position:absolute;inset:0;border-radius:10px}
+.kopen:focus-visible::after{outline:2px solid #2F6FA8;outline-offset:2px}
+.kqa{opacity:0;transition:opacity .12s ease}
+.kcard:hover .kqa,.kcard:focus-within .kqa{opacity:1}
+.kqb:hover{background:#E6EEF5;color:#1F2A37}
+.kbtn:focus-visible,.kqb:focus-visible,.kin:focus-visible{outline:2px solid #2F6FA8;outline-offset:2px}
+.kghost:hover{background:#EDE6D8;color:#1F2A37}
+.kcolghost:hover{background:#D6E2EC;color:#1F2A37}
+.kadd:hover{background:#D6E2EC;color:#1E3A5F}
+.kprimary:hover{background:#255C8E}
+.kmenu:hover{background:#E6EEF5}
+.kspace:hover{background:#EFE8DA}
+.kscroll::-webkit-scrollbar{height:10px;width:10px}
+.kscroll::-webkit-scrollbar-thumb{background:#D9CFBD;border-radius:999px}
+.kfile{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden}
+.kattach:focus-within{outline:2px solid #2F6FA8;outline-offset:2px}
+.krange{width:100%;accent-color:#2F6FA8}
+</style>
+</helmet>
+<div dir="{{dir}}" style="position: relative; min-height: 900px; background: #F6F1E7; font-family: {{font}}; color: #1F2A37; display: flex; flex-direction: column; font-variant-numeric: tabular-nums">
+<header style="display: flex; flex-wrap: wrap; align-items: center; gap: 14px 24px; padding: 14px 32px; background: #FBF8F2; border-bottom: 1px solid #E8E0D1">
+<div style="display: flex; align-items: center; gap: 12px">
+<span aria-hidden="true" style="width: 34px; height: 34px; border-radius: 9px; background: #2F6FA8; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(47,111,168,.25)">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="5" height="16" rx="1.5"></rect><rect x="10" y="4" width="5" height="10" rx="1.5"></rect><rect x="17" y="4" width="4" height="13" rx="1.5"></rect></svg>
+</span>
+<div style="display: flex; flex-direction: column">
+<h1 style="margin: 0; font-family: 'Geist', sans-serif; font-size: 22px; line-height: 28px; font-weight: 700; letter-spacing: -0.03em; color: #1E3A5F">Tidy<span aria-hidden="true" style="color: #2F6FA8">.</span></h1>
+<p style="margin: 0; font-size: 12px; line-height: 16px; color: #5F6B78">{{t.appSub}}</p>
+</div>
+</div>
+<nav aria-label="{{t.navLabel}}" style="display: flex; gap: 2px; padding: 3px; background: #F1EBDF; border: 1px solid #E4DCCB; border-radius: 10px">
+<button type="button" class="kbtn" aria-current="{{boardCurrent}}" onClick="{{goBoard}}" style="{{navBoard}}">
+<svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="5" height="16" rx="1.5"></rect><rect x="10" y="4" width="5" height="10" rx="1.5"></rect><rect x="17" y="4" width="4" height="13" rx="1.5"></rect></svg>{{t.board}}</button>
+<button type="button" class="kbtn" aria-current="{{chatCurrent}}" onClick="{{goChat}}" style="{{navChat}}">
+<svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12Z"></path></svg>{{t.chat}}<span style="min-width: 18px; height: 18px; padding: 0 5px; box-sizing: border-box; border-radius: 999px; background: #B42318; color: #FFFFFF; font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center">{{chatBadge}}</span></button>
+</nav>
+<sc-if value="{{isBoard}}" hint-placeholder-val="{{ true }}">
+<div aria-label="{{t.summaryLabel}}" style="display: flex; align-items: center; flex-wrap: wrap; gap: 8px">
+<span style="display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border-radius: 8px; background: #F1EBDF; border: 1px solid #E4DCCB; font-size: 12px; font-weight: 500; color: #4B5B6B">{{sum.total}}</span>
+<span style="display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border-radius: 8px; background: #F1EBDF; border: 1px solid #E4DCCB; font-size: 12px; font-weight: 500; color: #4B5B6B"><span aria-hidden="true" style="width: 7px; height: 7px; border-radius: 999px; background: #D9534F"></span>{{sum.overdue}}</span>
+<span style="display: inline-flex; align-items: center; gap: 8px; height: 28px; padding: 0 10px; border-radius: 8px; background: #F1EBDF; border: 1px solid #E4DCCB; font-size: 12px; font-weight: 500; color: #4B5B6B">
+<span aria-hidden="true" style="width: 72px; height: 5px; border-radius: 999px; background: #E2D8C6; overflow: hidden; display: flex"><span style="width: {{sum.pct}}; background: #2F6FA8; border-radius: 999px"></span></span>{{sum.done}}</span>
+</div>
+</sc-if>
+<div style="margin-inline-start: auto; display: flex; align-items: center; gap: 10px">
+<div role="group" aria-label="{{t.langLabel}}" style="display: flex; gap: 2px; padding: 3px; background: #F1EBDF; border: 1px solid #E4DCCB; border-radius: 9px">
+<button type="button" class="kbtn" aria-pressed="{{isEn}}" onClick="{{setEn}}" style="{{enBtn}}">EN</button>
+<button type="button" class="kbtn" aria-pressed="{{isFa}}" onClick="{{setFa}}" style="{{faBtn}}">فا</button>
+</div>
+<sc-if value="{{isBoard}}" hint-placeholder-val="{{ true }}">
+<div role="group" aria-label="{{t.densityLabel}}" style="display: flex; gap: 2px; padding: 3px; background: #F1EBDF; border: 1px solid #E4DCCB; border-radius: 9px">
+<button type="button" class="kbtn" aria-pressed="{{isComfy}}" onClick="{{setComfy}}" style="{{comfyBtn}}">{{t.comfy}}</button>
+<button type="button" class="kbtn" aria-pressed="{{isCompact}}" onClick="{{setCompact}}" style="{{compactBtn}}">{{t.compact}}</button>
+</div>
+</sc-if>
+<button type="button" class="kbtn kghost" onClick="{{openHelp}}" aria-label="{{t.shortcuts}}" style="width: 36px; height: 36px; border: 1px solid #E4DCCB; background: transparent; border-radius: 9px; color: #4B5B6B; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer">?</button>
+<div aria-label="{{t.teamLabel}}" style="display: flex; align-items: center; padding-inline-start: 6px">
+<sc-for list="{{team}}" as="tm" hint-placeholder-count="4">
+<span title="{{tm.n}}" style="width: 28px; height: 28px; margin-inline-start: -6px; border-radius: 999px; background: {{tm.bg}}; color: #1F2A37; font-size: 10.5px; font-weight: 700; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 2px #FBF8F2">{{tm.i}}</span>
+</sc-for>
+</div>
+</div>
+</header>
+
+<sc-if value="{{isBoard}}" hint-placeholder-val="{{ true }}">
+<main class="kscroll" style="flex: 1; overflow-x: auto; padding: 24px 32px 32px">
+<div style="display: flex; gap: 14px; align-items: flex-start; min-width: max-content">
+<sc-for list="{{columns}}" as="col" hint-placeholder-count="5">
+<sc-if value="{{col.collapsed}}" hint-placeholder-val="{{ false }}">
+<section aria-label="{{col.name}}" style="flex: 0 0 48px; width: 48px; min-height: 420px; background: #E6EEF5; border: 1px solid #D6E2EC; border-radius: 12px; display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 10px 0; box-sizing: border-box; border-top: 3px solid {{col.accent}}">
+<button type="button" class="kbtn kcolghost" onClick="{{col.toggle}}" aria-label="{{col.expandLabel}}" style="width: 32px; height: 32px; border: 0; background: transparent; border-radius: 8px; color: #4B5B6B; display: flex; align-items: center; justify-content: center; cursor: pointer">
+<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="transform: {{flip}}"><path d="M9 6l6 6-6 6"></path></svg>
+</button>
+<span style="font-size: 12px; font-weight: 600; color: #4B5B6B; background: #FFFDF8; border-radius: 999px; padding: 2px 7px">{{col.countText}}</span>
+<span style="writing-mode: vertical-rl; font-size: 13px; font-weight: 600; color: #1E3A5F">{{col.name}}</span>
+</section>
+</sc-if>
+<sc-if value="{{col.expanded}}" hint-placeholder-val="{{ true }}">
+<section aria-label="{{col.name}}" style="position: relative; flex: 0 0 288px; width: 288px; background: #E6EEF5; border: 1px solid {{col.border}}; border-top: 3px solid {{col.accent}}; border-radius: 12px; display: flex; flex-direction: column; box-sizing: border-box">
+<div style="display: flex; align-items: center; gap: 8px; padding: 10px 8px 8px; padding-inline: 14px 8px">
+<h2 style="margin: 0; font-size: 13px; line-height: 20px; font-weight: 600; color: #1E3A5F">{{col.name}}</h2>
+<span title="{{col.countTitle}}" style="{{col.countStyle}}">{{col.countText}}</span>
+<span style="margin-inline-start: auto; display: flex; gap: 2px">
+<button type="button" class="kbtn kcolghost" aria-label="{{col.addLabel}}" style="width: 30px; height: 30px; border: 0; background: transparent; border-radius: 8px; color: #4B5B6B; display: flex; align-items: center; justify-content: center; cursor: pointer">
+<svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+</button>
+<button type="button" class="kbtn kcolghost" onClick="{{col.menuToggle}}" aria-label="{{col.menuLabel}}" aria-expanded="{{col.menuOpen}}" style="width: 30px; height: 30px; border: 0; background: transparent; border-radius: 8px; color: #4B5B6B; display: flex; align-items: center; justify-content: center; cursor: pointer">
+<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.7"></circle><circle cx="12" cy="12" r="1.7"></circle><circle cx="19" cy="12" r="1.7"></circle></svg>
+</button>
+</span>
+</div>
+<sc-if value="{{col.menuOpen}}" hint-placeholder-val="{{ false }}">
+<div role="menu" style="position: absolute; top: 44px; inset-inline-end: 8px; z-index: 5; width: 200px; padding: 6px; background: #FFFDF8; border: 1px solid #D6E2EC; border-radius: 10px; box-shadow: 0 12px 32px rgba(31,42,55,.16); display: flex; flex-direction: column; gap: 2px">
+<button type="button" role="menuitem" class="kmenu" style="display: flex; align-items: center; gap: 10px; height: 34px; padding: 0 10px; border: 0; background: transparent; border-radius: 7px; font: inherit; font-size: 13px; color: #1F2A37; cursor: pointer; text-align: start">{{t.rename}}</button>
+<button type="button" role="menuitem" class="kmenu" style="display: flex; align-items: center; gap: 10px; height: 34px; padding: 0 10px; border: 0; background: transparent; border-radius: 7px; font: inherit; font-size: 13px; color: #1F2A37; cursor: pointer; text-align: start">{{t.wip}}<span style="margin-inline-start: auto; font-size: 12px; color: #5F6B78">{{col.limitText}}</span></button>
+<button type="button" role="menuitem" class="kmenu" onClick="{{col.toggle}}" style="display: flex; align-items: center; gap: 10px; height: 34px; padding: 0 10px; border: 0; background: transparent; border-radius: 7px; font: inherit; font-size: 13px; color: #1F2A37; cursor: pointer; text-align: start">{{t.collapse}}</button>
+</div>
+</sc-if>
+<div style="display: flex; flex-direction: column; gap: 8px; padding: 0 8px">
+<sc-for list="{{col.cards}}" as="card" hint-placeholder-count="2">
+<article class="kcard" style="position: relative; background: #FFFDF8; border: 1px solid #DCE4EA; border-radius: 10px; padding: {{pad}}; display: flex; flex-direction: column; gap: {{gap}}; box-shadow: 0 1px 2px rgba(31,42,55,.06)">
+<sc-if value="{{card.showChips}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-wrap: wrap; gap: 6px">
+<sc-for list="{{card.labels}}" as="lb" hint-placeholder-count="1">
+<span style="height: 20px; display: inline-flex; align-items: center; padding: 0 8px; border-radius: 6px; font-size: 12px; font-weight: 500; background: {{lb.bg}}; color: {{lb.fg}}">{{lb.n}}</span>
+</sc-for>
+</div>
+</sc-if>
+<button type="button" class="kopen" onClick="{{card.open}}">{{card.title}}</button>
+<div style="display: flex; align-items: center; gap: 8px">
+<span aria-hidden="true" style="flex: 1; height: 5px; border-radius: 999px; background: #E6EEF5; overflow: hidden; display: flex"><span style="width: {{card.pctW}}; background: {{card.pctColor}}; border-radius: 999px"></span></span>
+<span style="font-size: 11.5px; font-weight: 600; color: #4B5B6B; min-width: 34px; text-align: end">{{card.pct}}</span>
+</div>
+<div style="display: flex; align-items: center; gap: 8px; min-height: 24px">
+<span title="{{card.priName}}" style="display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 500; color: {{card.priColor}}">
+<svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14"><rect x="1" y="9" width="3" height="4" rx="1" fill="{{card.b1}}"></rect><rect x="5.5" y="5.5" width="3" height="7.5" rx="1" fill="{{card.b2}}"></rect><rect x="10" y="2" width="3" height="11" rx="1" fill="{{card.b3}}"></rect></svg>{{card.priName}}</span>
+<sc-if value="{{card.hasDue}}" hint-placeholder-val="{{ true }}">
+<span style="display: inline-flex; align-items: center; height: 22px; padding: 0 7px; border-radius: 6px; font-size: 12px; font-weight: 500; background: {{card.dueBg}}; color: {{card.dueFg}}">{{card.dueText}}</span>
+</sc-if>
+<span title="{{card.msgTitle}}" style="display: inline-flex; align-items: center; gap: 3px; font-size: 12px; font-weight: 500; color: #5F6B78"><svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12Z"></path></svg>{{card.msgCount}}</span>
+<span style="margin-inline-start: auto; display: flex; align-items: center; padding-inline-start: 6px">
+<sc-for list="{{card.avs}}" as="av" hint-placeholder-count="1">
+<span title="{{av.n}}" style="width: 24px; height: 24px; margin-inline-start: -6px; border-radius: 999px; background: {{av.bg}}; color: #1F2A37; font-size: 9.5px; font-weight: 700; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 2px #FFFDF8">{{av.i}}</span>
+</sc-for>
+</span>
+</div>
+<div class="kqa" style="position: absolute; top: 8px; inset-inline-end: 8px; z-index: 2; display: flex; gap: 2px; padding: 2px; background: #FFFFFF; border: 1px solid #D6E2EC; border-radius: 8px; box-shadow: 0 6px 16px rgba(31,42,55,.12)">
+<button type="button" class="kqb" onClick="{{card.open}}" aria-label="{{card.roomLabel}}" title="{{card.roomLabel}}" style="width: 26px; height: 26px; border: 0; background: transparent; border-radius: 6px; color: #4B5B6B; display: flex; align-items: center; justify-content: center; cursor: pointer"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12Z"></path></svg></button>
+<sc-if value="{{card.canMove}}" hint-placeholder-val="{{ true }}">
+<button type="button" class="kqb" onClick="{{card.moveNext}}" aria-label="{{card.moveLabel}}" title="{{card.moveLabel}}" style="width: 26px; height: 26px; border: 0; background: transparent; border-radius: 6px; color: #4B5B6B; display: flex; align-items: center; justify-content: center; cursor: pointer"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="transform: {{flip}}"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></button>
+</sc-if>
+<button type="button" class="kqb" onClick="{{card.remove}}" aria-label="{{card.delLabel}}" title="{{card.delLabel}}" style="width: 26px; height: 26px; border: 0; background: transparent; border-radius: 6px; color: #B42318; display: flex; align-items: center; justify-content: center; cursor: pointer"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"></path></svg></button>
+</div>
+</article>
+</sc-for>
+</div>
+<button type="button" class="kbtn kadd" style="margin: 8px; display: flex; align-items: center; gap: 6px; height: 36px; padding: 0 8px; border: 0; background: transparent; border-radius: 8px; font: inherit; font-size: 13px; font-weight: 500; color: #4B5B6B; cursor: pointer">
+<svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>{{t.add}}</button>
+</section>
+</sc-if>
+</sc-for>
+</div>
+</main>
+</sc-if>
+
+<sc-if value="{{isChat}}" hint-placeholder-val="{{ false }}">
+<div style="flex: 1; display: flex; flex-wrap: wrap; height: 828px; min-height: 0">
+<aside aria-label="{{t.spacesLabel}}" class="kscroll" style="flex: 0 0 272px; width: 272px; box-sizing: border-box; height: 100%; overflow-y: auto; padding: 18px 12px; background: #FBF8F2; border-inline-end: 1px solid #E8E0D1; display: flex; flex-direction: column; gap: 6px">
+<span style="padding: 0 10px 6px; font-size: 11.5px; font-weight: 600; letter-spacing: .02em; color: #5F6B78">{{t.teamSpace}}</span>
+<button type="button" class="kbtn kspace" onClick="{{goGeneral}}" aria-current="{{generalCurrent}}" style="{{generalStyle}}">
+<span aria-hidden="true" style="width: 32px; height: 32px; border-radius: 9px; background: #2F6FA8; color: #FFFFFF; font-family: 'Geist', sans-serif; font-size: 16px; font-weight: 700; display: flex; align-items: center; justify-content: center">#</span>
+<span style="display: flex; flex-direction: column; min-width: 0; flex: 1">
+<span style="font-size: 13.5px; font-weight: 600; color: #1F2A37">{{t.general}}</span>
+<span style="font-size: 12px; color: #5F6B78">{{t.generalSub}}</span>
+</span>
+</button>
+<span style="padding: 14px 10px 6px; font-size: 11.5px; font-weight: 600; letter-spacing: .02em; color: #5F6B78">{{t.rooms}}</span>
+<sc-for list="{{rooms}}" as="r" hint-placeholder-count="6">
+<button type="button" class="kbtn kspace" onClick="{{r.go}}" aria-current="{{r.current}}" style="{{r.style}}">
+<span aria-hidden="true" style="flex: 0 0 8px; width: 8px; height: 8px; border-radius: 999px; background: {{r.accent}}; margin-top: 6px"></span>
+<span style="display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1">
+<span style="font-size: 13px; font-weight: 600; color: #1F2A37; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{r.title}}</span>
+<span style="display: flex; align-items: center; gap: 6px">
+<span aria-hidden="true" style="width: 48px; height: 4px; border-radius: 999px; background: #E6EEF5; overflow: hidden; display: flex"><span style="width: {{r.pctW}}; background: #2F6FA8"></span></span>
+<span style="font-size: 11.5px; color: #5F6B78">{{r.sub}}</span>
+</span>
+</span>
+</button>
+</sc-for>
+</aside>
+
+<section aria-label="{{conv.title}}" style="flex: 999 1 420px; min-width: 0; height: 100%; display: flex; flex-direction: column; background: #F6F1E7">
+<div style="display: flex; align-items: center; gap: 12px; padding: 14px 24px; border-bottom: 1px solid #E8E0D1; background: #FFFDF8">
+<div style="display: flex; flex-direction: column; min-width: 0; flex: 1">
+<h2 style="margin: 0; font-size: 16px; line-height: 24px; font-weight: 600; color: #1E3A5F; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{conv.title}}</h2>
+<p style="margin: 0; font-size: 12px; color: #5F6B78">{{conv.sub}}</p>
+</div>
+<div style="display: flex; align-items: center">
+<sc-for list="{{conv.avs}}" as="av" hint-placeholder-count="3">
+<span title="{{av.n}}" style="width: 26px; height: 26px; margin-inline-start: -6px; border-radius: 999px; background: {{av.bg}}; color: #1F2A37; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 2px #FFFDF8">{{av.i}}</span>
+</sc-for>
+</div>
+</div>
+<div class="kscroll" role="log" aria-live="polite" style="flex: 1; min-height: 0; overflow-y: auto; padding: 20px 24px; display: flex; flex-direction: column; gap: 14px">
+<sc-if value="{{conv.empty}}" hint-placeholder-val="{{ false }}">
+<div style="margin: auto; display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; padding: 40px 20px">
+<svg aria-hidden="true" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#9FB3C8" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12Z"></path></svg>
+<span style="font-size: 14px; font-weight: 600; color: #1E3A5F">{{t.noMsgs}}</span>
+<span style="font-size: 12.5px; color: #5F6B78">{{t.noMsgsSub}}</span>
+</div>
+</sc-if>
+<sc-for list="{{conv.msgs}}" as="msg" hint-placeholder-count="4">
+<sc-if value="{{msg.isEvent}}" hint-placeholder-val="{{ false }}">
+<div style="align-self: center; display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 999px; background: #EDE6D8; font-size: 12px; color: #4B5B6B">
+<svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="{{msg.icon}}"></path></svg>{{msg.text}}<span style="color: #8A95A1">· {{msg.time}}</span></div>
+</sc-if>
+<sc-if value="{{msg.isTask}}" hint-placeholder-val="{{ false }}">
+<div style="align-self: center; width: min(420px, 100%); box-sizing: border-box; padding: 12px 14px; border-radius: 12px; background: #FFFDF8; border: 1px solid #C9D7E3; display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 12px; color: #5F6B78">{{msg.text}} · {{msg.time}}</span>
+<div style="display: flex; align-items: center; gap: 10px">
+<span aria-hidden="true" style="width: 30px; height: 30px; border-radius: 8px; background: #E6EEF5; color: #2F6FA8; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3 8-8"></path><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"></path></svg></span>
+<span style="flex: 1; font-size: 14px; font-weight: 600; color: #1F2A37">{{msg.taskTitle}}</span>
+<button type="button" class="kbtn kghost" onClick="{{msg.openTask}}" style="height: 30px; padding: 0 10px; border: 1px solid #DCE4EA; background: transparent; border-radius: 7px; font: inherit; font-size: 12px; font-weight: 500; color: #2F6FA8; cursor: pointer">{{t.openRoom}}</button>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{msg.isMsg}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; align-items: flex-end; gap: 8px; justify-content: {{msg.justify}}">
+<sc-if value="{{msg.showAv}}" hint-placeholder-val="{{ true }}">
+<span title="{{msg.name}}" style="flex: 0 0 30px; width: 30px; height: 30px; border-radius: 999px; background: {{msg.avBg}}; color: #1F2A37; font-size: 10.5px; font-weight: 700; display: flex; align-items: center; justify-content: center">{{msg.ini}}</span>
+</sc-if>
+<div style="max-width: 68%; display: flex; flex-direction: column; gap: 4px; align-items: {{msg.align}}">
+<span style="font-size: 11.5px; color: #5F6B78; padding: 0 4px"><b style="font-weight: 600; color: #1E3A5F">{{msg.name}}</b> · {{msg.time}}</span>
+<div style="{{msg.bubble}}">
+<sc-if value="{{msg.hasSrc}}" hint-placeholder-val="{{ false }}">
+<img src="{{msg.src}}" alt="{{msg.alt}}" style="display: block; max-width: 280px; max-height: 220px; border-radius: 8px; object-fit: cover">
+</sc-if>
+<sc-if value="{{msg.isPlaceholder}}" hint-placeholder-val="{{ false }}">
+<div role="img" aria-label="{{msg.alt}}" style="width: 260px; height: 150px; border-radius: 8px; background: #DCE8F2; border: 1px solid #C9D7E3; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; color: #2F6FA8">
+<svg aria-hidden="true" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"></rect><circle cx="9" cy="10" r="2"></circle><path d="M21 17l-5-5-9 8"></path></svg>
+<span style="font-family: 'Geist Mono', monospace; font-size: 11px; color: #1E3A5F">{{msg.file}}</span>
+</div>
+</sc-if>
+<sc-if value="{{msg.hasText}}" hint-placeholder-val="{{ true }}">
+<span dir="auto" style="display: block; font-size: 13.5px; line-height: 21px; white-space: pre-wrap">{{msg.text}}</span>
+</sc-if>
+</div>
+</div>
+</div>
+</sc-if>
+</sc-for>
+</div>
+<div style="padding: 12px 24px 18px; background: #F6F1E7">
+<div style="display: flex; align-items: center; gap: 8px; padding: 6px; background: #FFFDF8; border: 1px solid #DCE4EA; border-radius: 12px; box-shadow: 0 1px 2px rgba(31,42,55,.06)">
+<label class="kattach" title="{{t.attach}}" style="position: relative; flex: 0 0 38px; width: 38px; height: 38px; border-radius: 9px; color: #4B5B6B; display: flex; align-items: center; justify-content: center; cursor: pointer; background: #F1EBDF">
+<input type="file" accept="image/*" class="kfile" aria-label="{{t.attach}}" onChange="{{attach}}">
+<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"></rect><circle cx="9" cy="10" r="2"></circle><path d="M21 17l-5-5-9 8"></path></svg>
+</label>
+<input class="kin" dir="auto" value="{{draft}}" onChange="{{onDraft}}" onKeyDown="{{onKey}}" aria-label="{{t.placeholder}}" placeholder="{{t.placeholder}}" style="flex: 1; min-width: 0; height: 38px; border: 0; background: transparent; font: inherit; font-size: 14px; color: #1F2A37; outline: none; padding: 0 6px">
+<button type="button" class="kbtn kghost" onClick="{{makeTask}}" disabled="{{noDraft}}" title="{{t.makeTaskHint}}" style="height: 38px; padding: 0 12px; border: 1px solid #DCE4EA; background: transparent; border-radius: 9px; font: inherit; font-size: 12.5px; font-weight: 600; color: #2F6FA8; cursor: pointer; display: flex; align-items: center; gap: 6px; opacity: {{draftOpacity}}">
+<svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3 8-8"></path><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"></path></svg>{{t.makeTask}}</button>
+<button type="button" class="kbtn kprimary" onClick="{{send}}" disabled="{{noDraft}}" aria-label="{{t.send}}" style="height: 38px; padding: 0 16px; border: 0; background: #2F6FA8; border-radius: 9px; font: inherit; font-size: 13px; font-weight: 600; color: #FFFFFF; cursor: pointer; display: flex; align-items: center; gap: 6px; opacity: {{draftOpacity}}">{{t.send}}<svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="transform: {{flip}}"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></button>
+</div>
+<p style="margin: 6px 4px 0; font-size: 11.5px; color: #5F6B78">{{t.composerHint}}</p>
+</div>
+</section>
+
+<sc-if value="{{hasTask}}" hint-placeholder-val="{{ false }}">
+<aside aria-label="{{t.taskInfo}}" class="kscroll" style="flex: 0 0 320px; width: 320px; box-sizing: border-box; height: 100%; overflow-y: auto; padding: 20px; background: #FFFDF8; border-inline-start: 1px solid #E8E0D1; display: flex; flex-direction: column; gap: 20px">
+<div style="display: flex; flex-direction: column; gap: 10px; padding: 16px; border-radius: 12px; background: #E6EEF5">
+<div style="display: flex; align-items: baseline; justify-content: space-between">
+<span style="font-size: 12.5px; font-weight: 600; color: #1E3A5F">{{t.progress}}</span>
+<span style="font-size: 26px; line-height: 30px; font-weight: 700; color: #1E3A5F">{{tp.pct}}</span>
+</div>
+<input type="range" class="krange" min="0" max="100" step="5" value="{{tp.raw}}" onChange="{{tp.setProgress}}" aria-label="{{t.progress}}">
+<button type="button" class="kbtn kprimary" onClick="{{tp.post}}" style="height: 34px; border: 0; background: #2F6FA8; border-radius: 8px; font: inherit; font-size: 12.5px; font-weight: 600; color: #FFFFFF; cursor: pointer">{{t.postUpdate}}</button>
+</div>
+<div style="display: flex; flex-direction: column; gap: 10px">
+<span style="font-size: 12px; font-weight: 600; color: #5F6B78">{{tp.membersTitle}}</span>
+<sc-for list="{{tp.members}}" as="mb" hint-placeholder-count="2">
+<div style="display: flex; align-items: center; gap: 10px">
+<span style="width: 30px; height: 30px; border-radius: 999px; background: {{mb.bg}}; color: #1F2A37; font-size: 10.5px; font-weight: 700; display: flex; align-items: center; justify-content: center">{{mb.i}}</span>
+<span style="flex: 1; font-size: 13px; font-weight: 500; color: #1F2A37">{{mb.n}}</span>
+<button type="button" class="kbtn kghost" onClick="{{mb.remove}}" aria-label="{{mb.removeLabel}}" style="width: 28px; height: 28px; border: 0; background: transparent; border-radius: 7px; color: #5F6B78; display: flex; align-items: center; justify-content: center; cursor: pointer"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+</div>
+</sc-for>
+<div style="display: flex; flex-wrap: wrap; gap: 6px">
+<sc-for list="{{tp.others}}" as="ot" hint-placeholder-count="2">
+<button type="button" class="kbtn kghost" onClick="{{ot.add}}" style="height: 30px; padding: 0 10px; border: 1px dashed #C9D3DC; background: transparent; border-radius: 999px; font: inherit; font-size: 12px; font-weight: 500; color: #2F6FA8; cursor: pointer">+ {{ot.n}}</button>
+</sc-for>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 0; border-top: 1px solid #EEE7DA">
+<sc-for list="{{tp.rows}}" as="row" hint-placeholder-count="3">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 0; border-bottom: 1px solid #EEE7DA">
+<span style="font-size: 12.5px; color: #5F6B78">{{row.k}}</span>
+<span style="font-size: 12.5px; font-weight: 600; color: {{row.color}}">{{row.v}}</span>
+</div>
+</sc-for>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 6px">
+<sc-for list="{{tp.labels}}" as="lb" hint-placeholder-count="1">
+<span style="height: 22px; display: inline-flex; align-items: center; padding: 0 8px; border-radius: 6px; font-size: 12px; font-weight: 500; background: {{lb.bg}}; color: {{lb.fg}}">{{lb.n}}</span>
+</sc-for>
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 12px; font-weight: 600; color: #5F6B78">{{t.details}}</span>
+<p dir="auto" style="margin: 0; font-size: 13px; line-height: 21px; color: #1F2A37">{{tp.details}}</p>
+</div>
+</aside>
+</sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{help}}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; inset: 0; z-index: 10; background: rgba(31,42,55,.32); backdrop-filter: blur(2px); display: flex; align-items: flex-start; justify-content: center; padding: 96px 20px">
+<div role="dialog" aria-modal="true" aria-labelledby="v2-help-title" style="width: 100%; max-width: 420px; background: #FFFDF8; border: 1px solid #E4DCCB; border-radius: 16px; box-shadow: 0 24px 64px rgba(31,42,55,.22); padding: 20px 22px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; align-items: center; justify-content: space-between">
+<h2 id="v2-help-title" style="margin: 0; font-size: 18px; line-height: 26px; font-weight: 600; color: #1E3A5F">{{t.shortcuts}}</h2>
+<button type="button" class="kbtn kghost" onClick="{{closeHelp}}" aria-label="{{t.close}}" style="width: 32px; height: 32px; border: 0; background: transparent; border-radius: 8px; color: #4B5B6B; display: flex; align-items: center; justify-content: center; cursor: pointer"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+</div>
+<div style="display: flex; flex-direction: column">
+<sc-for list="{{shortcuts}}" as="sc" hint-placeholder-count="6">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 0; border-bottom: 1px solid #EEE7DA">
+<span style="font-size: 13px; color: #1F2A37">{{sc.label}}</span>
+<span dir="ltr" style="display: flex; gap: 4px"><sc-for list="{{sc.keys}}" as="k" hint-placeholder-count="1"><kbd style="min-width: 24px; height: 24px; padding: 0 6px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; border-radius: 6px; background: #E6EEF5; border: 1px solid #C9D7E3; border-bottom-width: 2px; font-family: 'Geist Mono', monospace; font-size: 11px; font-weight: 500; color: #1E3A5F">{{k}}</kbd></sc-for></span>
+</div>
+</sc-for>
+</div>
+</div>
+</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"lang":{"editor":"enum","options":["en","fa"],"default":"en"},"view":{"editor":"enum","options":["board","chat"],"default":"board"},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { lang: null, view: null, space: 'general', density: 'comfortable', colOf: {}, deleted: {}, progress: {}, members: {}, extra: [], msgs: {}, draft: '', collapsed: {}, menu: -1, help: false };
+  }
+  patch(key, id, val) {
+    const next = Object.assign({}, this.state[key]);
+    next[id] = val;
+    this.setState({ [key]: next });
+  }
+  push(space, msg) {
+    const all = Object.assign({}, this.state.msgs);
+    all[space] = (all[space] || []).concat([msg]);
+    this.setState({ msgs: all });
+  }
+  now() {
+    const d = new Date();
+    return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+  }
+  renderVals() {
+    const lang = this.state.lang || this.props.lang || 'en';
+    const view = this.state.view || this.props.view || 'board';
+    const fa = lang === 'fa';
+    const toFa = (s) => String(s).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[d]);
+    const num = (s) => (fa ? toFa(s) : String(s));
+    const L = (o) => (o && typeof o === 'object' ? o[lang] : o);
+    const ME = 'sara';
+    const TODAY = 17;
+    const T = {
+      en: {
+        appSub: 'Project board · 5 columns', navLabel: 'Main', board: 'Board', chat: 'Chat', summaryLabel: 'Board summary', langLabel: 'Language', densityLabel: 'Card density', teamLabel: 'Team',
+        comfy: 'Comfortable', compact: 'Compact', shortcuts: 'Keyboard shortcuts', close: 'Close',
+        cols: ['Ideas', 'To do', 'In progress', 'Review', 'Done'], add: 'Add card', addTo: 'Add card to ', menuOf: ' column menu', expand: 'Expand ',
+        rename: 'Rename column', wip: 'Set WIP limit', collapse: 'Collapse column', none: 'None', cards: ' cards', atLimit: 'At WIP limit', overLimit: 'Over WIP limit',
+        pri: { high: 'High', medium: 'Medium', low: 'Low' }, today: 'Today', tomorrow: 'Tomorrow', doneW: 'Done', month: 'Aban',
+        total: ' cards', overdue: ' overdue', donePct: '% done', openRoomOf: 'Open task room', moveTo: 'Move to ', del: 'Delete card', msgs: ' messages',
+        spacesLabel: 'Conversations', teamSpace: 'TEAM SPACE', general: 'General', generalSub: 'Whole team · 4 members', rooms: 'TASK ROOMS', membersN: ' members',
+        noMsgs: 'No messages yet', noMsgsSub: 'Start the conversation, share an image or post a progress update.',
+        placeholder: 'Write a message…', attach: 'Attach image', send: 'Send', makeTask: 'Create task', makeTaskHint: 'Turn this message into a task in To do',
+        composerHint: 'Enter to send · Create task turns the message into a card in To do', openRoom: 'Open room',
+        taskInfo: 'Task info', progress: 'Progress', postUpdate: 'Post progress update', members: 'Members', details: 'Details', column: 'Column', priority: 'Priority', due: 'Due date', noDue: 'No due date', remove: 'Remove ',
+        you: 'You', evProgress: ' set progress to ', evAdded: ' added ', evRemoved: ' removed ', evCreated: ' created a task', evMoved: ' moved this to ',
+        sc: ['New card in focused column', 'Open task room', 'Move card to previous / next column', 'Delete focused card', 'Switch Board / Chat', 'Switch language', 'Show shortcuts', 'Close dialog']
+      },
+      fa: {
+        appSub: 'تخته‌ی پروژه · ۵ ستون', navLabel: 'بخش‌ها', board: 'تخته', chat: 'گفتگو', summaryLabel: 'خلاصه‌ی تخته', langLabel: 'زبان', densityLabel: 'تراکم کارت', teamLabel: 'تیم',
+        comfy: 'راحت', compact: 'فشرده', shortcuts: 'میانبرهای صفحه‌کلید', close: 'بستن',
+        cols: ['ایده‌ها', 'برای انجام', 'در حال انجام', 'بازبینی', 'انجام‌شده'], add: 'افزودن کارت', addTo: 'افزودن کارت به ', menuOf: ' - منوی ستون', expand: 'باز کردن ',
+        rename: 'تغییر نام ستون', wip: 'محدودیت تعداد کار', collapse: 'جمع کردن ستون', none: 'ندارد', cards: ' کارت', atLimit: 'در حد مجاز', overLimit: 'بیش از حد مجاز',
+        pri: { high: 'زیاد', medium: 'متوسط', low: 'کم' }, today: 'امروز', tomorrow: 'فردا', doneW: 'انجام شد', month: 'آبان',
+        total: ' کارت', overdue: ' عقب‌افتاده', donePct: '٪ انجام‌شده', openRoomOf: 'باز کردن اتاق کار', moveTo: 'انتقال به ', del: 'حذف کارت', msgs: ' پیام',
+        spacesLabel: 'گفتگوها', teamSpace: 'فضای تیم', general: 'عمومی', generalSub: 'کل تیم · ۴ عضو', rooms: 'اتاق‌های کار', membersN: ' عضو',
+        noMsgs: 'هنوز پیامی نیست', noMsgsSub: 'گفتگو را شروع کن، عکس بفرست یا میزان پیشرفت را گزارش بده.',
+        placeholder: 'پیام بنویس…', attach: 'افزودن عکس', send: 'ارسال', makeTask: 'ساخت کار', makeTaskHint: 'این پیام را به یک کار در ستون «برای انجام» تبدیل کن',
+        composerHint: 'Enter برای ارسال · «ساخت کار» پیام را به یک کارت در ستون «برای انجام» تبدیل می‌کند', openRoom: 'باز کردن اتاق',
+        taskInfo: 'اطلاعات کار', progress: 'پیشرفت', postUpdate: 'ثبت گزارش پیشرفت', members: 'اعضا', details: 'جزئیات', column: 'ستون', priority: 'اولویت', due: 'سررسید', noDue: 'ندارد', remove: 'حذف ',
+        you: 'شما', evProgress: ' پیشرفت را روی ', evAdded: ' این عضو را اضافه کرد: ', evRemoved: ' این عضو را حذف کرد: ', evCreated: ' یک کار ساخت', evMoved: ' این کار را منتقل کرد به ',
+        sc: ['کارت جدید در ستون انتخاب‌شده', 'باز کردن اتاق کار', 'انتقال کارت به ستون قبلی / بعدی', 'حذف کارت انتخاب‌شده', 'جابه‌جایی بین تخته و گفتگو', 'تغییر زبان', 'نمایش میانبرها', 'بستن پنجره']
+      }
+    };
+    const t = T[lang];
+    const M = {
+      sara: { n: { en: 'Sara Ahmadi', fa: 'سارا احمدی' }, i: { en: 'SA', fa: 'سا' }, bg: '#C9D9EC' },
+      ali: { n: { en: 'Ali Rezaei', fa: 'علی رضایی' }, i: { en: 'AR', fa: 'عر' }, bg: '#CFE3D6' },
+      maryam: { n: { en: 'Maryam Karimi', fa: 'مریم کریمی' }, i: { en: 'MK', fa: 'مک' }, bg: '#F1D3DD' },
+      reza: { n: { en: 'Reza Mohammadi', fa: 'رضا محمدی' }, i: { en: 'RM', fa: 'رم' }, bg: '#F2DDB8' }
+    };
+    const who = (k) => ({ n: L(M[k].n), i: L(M[k].i), bg: M[k].bg });
+    const LB = {
+      design: { n: { en: 'Design', fa: 'طراحی' }, fg: '#6D28D9', bg: '#EFE9FB' },
+      frontend: { n: { en: 'Frontend', fa: 'فرانت‌اند' }, fg: '#155E75', bg: '#DDEFF4' },
+      bug: { n: { en: 'Bug', fa: 'باگ' }, fg: '#B42318', bg: '#FDE7E4' },
+      docs: { n: { en: 'Docs', fa: 'مستندات' }, fg: '#3730A3', bg: '#E7E8F8' },
+      testing: { n: { en: 'Testing', fa: 'تست' }, fg: '#9D174D', bg: '#FBE7EF' }
+    };
+    const lab = (k) => ({ n: L(LB[k].n), fg: LB[k].fg, bg: LB[k].bg });
+    const P = { high: { c: '#B42318', lv: 3 }, medium: { c: '#A15C07', lv: 2 }, low: { c: '#5F6B78', lv: 1 } };
+    const COLS = [
+      { accent: '#A8B4C2', limit: 0 }, { accent: '#7FA7CF', limit: 0 }, { accent: '#E0A43B', limit: 3 }, { accent: '#9C8AC9', limit: 2 }, { accent: '#6FA287', limit: 0 }
+    ];
+    const BASE = [
+      { id: 'c1', c: 0, t: { en: 'Board progress bar', fa: 'نوار پیشرفت تخته' }, d: { en: 'Show the share of finished cards in the board header.', fa: 'نمایش درصد کارت‌های انجام‌شده در سربرگ تخته.' }, p: 'low', l: ['design'], m: ['maryam'], g: 0 },
+      { id: 'c2', c: 0, t: { en: 'Keyboard shortcut sheet', fa: 'راهنمای میانبرها' }, d: { en: 'Open a cheat sheet with the ? key.', fa: 'باز شدن راهنما با کلید ?' }, p: 'low', l: ['frontend'], m: [], g: 0 },
+      { id: 'c3', c: 1, t: { en: 'Empty column state', fa: 'طراحی حالت خالی ستون' }, d: { en: 'A friendly message and quick add when a column has no cards.', fa: 'پیام دوستانه و افزودن سریع وقتی ستونی کارت ندارد.' }, p: 'high', l: ['design'], due: 20, m: ['sara'], g: 10 },
+      { id: 'c4', c: 1, t: { en: 'Column unit tests', fa: 'تست‌های واحد ستون‌ها' }, d: { en: 'Cover add, delete and rename with Vitest.', fa: 'پوشش افزودن، حذف و تغییر نام با Vitest.' }, p: 'medium', l: ['testing'], due: 25, m: ['ali'], g: 0 },
+      { id: 'c5', c: 2, t: { en: 'Drag and drop cards', fa: 'کشیدن و رها کردن کارت‌ها' }, d: { en: 'dnd-kit with keyboard support and a drop indicator line.', fa: 'پیاده‌سازی با dnd-kit همراه با صفحه‌کلید و خط محل فرود.' }, p: 'high', l: ['frontend'], due: 17, m: ['ali', 'sara'], g: 60 },
+      { id: 'c6', c: 2, t: { en: 'Jalali date picker', fa: 'انتخابگر تاریخ شمسی' }, d: { en: 'Wire react-multi-date-picker to the Persian calendar.', fa: 'اتصال react-multi-date-picker به تقویم شمسی.' }, p: 'medium', l: ['frontend'], due: 15, m: ['maryam'], g: 35 },
+      { id: 'c7', c: 2, t: { en: 'Task chat room', fa: 'اتاق گفتگوی کار' }, d: { en: 'Group chat per task with images, members and progress updates.', fa: 'گفتگوی گروهی برای هر کار، با عکس، اعضا و گزارش پیشرفت.' }, p: 'medium', l: ['design', 'frontend'], due: 18, m: ['sara', 'reza', 'maryam'], g: 45 },
+      { id: 'c8', c: 3, t: { en: 'Fix mixed text direction', fa: 'اصلاح جهت متن ترکیبی' }, d: { en: 'Persian text keeps its own direction inside the English UI.', fa: 'متن فارسی در رابط انگلیسی جهت خودش را حفظ کند.' }, p: 'high', l: ['bug'], due: 19, m: ['sara'], g: 90 },
+      { id: 'c9', c: 4, t: { en: 'Set up Next.js project', fa: 'راه‌اندازی پروژه Next.js' }, d: { en: 'Scaffold, Tailwind and .gitignore.', fa: 'ساختار اولیه، Tailwind و ‎.gitignore' }, p: 'low', l: ['docs'], due: 10, m: ['reza'], g: 100 },
+      { id: 'c10', c: 4, t: { en: 'Write AGENTS.md', fa: 'نوشتن AGENTS.md' }, d: { en: 'Requirements, palette and delivery plan.', fa: 'نیازمندی‌ها، پالت رنگ و راهبرد اجرا.' }, p: 'medium', l: ['docs'], due: 5, m: ['sara'], g: 100 }
+    ];
+    const SEED = {
+      general: [
+        { k: 'g1', type: 'text', who: 'reza', time: '09:02', text: { en: 'Morning team! Standup notes are in the Docs cards.', fa: 'صبح بخیر تیم! یادداشت‌های جلسه‌ی صبح در کارت‌های مستندات است.' } },
+        { k: 'g2', type: 'task', who: 'sara', time: '09:10', task: 'c7' },
+        { k: 'g3', type: 'image', who: 'maryam', time: '09:24', file: 'empty-states-moodboard.png', text: { en: 'Moodboard for the empty column states', fa: 'مودبورد حالت‌های خالی ستون' } },
+        { k: 'g4', type: 'text', who: 'ali', time: '09:31', text: { en: 'Drag and drop is at 60%. Keyboard moves are next.', fa: 'کشیدن و رها کردن ۶۰٪ پیش رفته. قدم بعدی جابه‌جایی با صفحه‌کلید است.' } },
+        { k: 'g5', type: 'text', who: 'sara', time: '09:33', text: { en: 'Great progress. Let us review it together after lunch.', fa: 'عالیه. بعد از ناهار با هم مرورش کنیم.' } }
+      ],
+      c7: [
+        { k: 'r1', type: 'event', ev: 'added', who: 'sara', target: 'reza', time: '09:11' },
+        { k: 'r2', type: 'event', ev: 'added', who: 'sara', target: 'maryam', time: '09:11' },
+        { k: 'r3', type: 'image', who: 'maryam', time: '10:05', file: 'chat-panel-v1.png', text: { en: 'First layout for the chat panel.', fa: 'اولین چیدمان پنل گفتگو.' } },
+        { k: 'r4', type: 'text', who: 'reza', time: '10:12', text: { en: 'Looks clean. Can progress updates show as small events in the thread?', fa: 'تمیز شده. می‌شود گزارش‌های پیشرفت را به شکل رویدادهای کوچک در گفتگو نشان داد؟' } },
+        { k: 'r5', type: 'event', ev: 'progress', who: 'sara', val: 45, time: '10:20' },
+        { k: 'r6', type: 'text', who: 'sara', time: '10:21', text: { en: 'Done. Next up: image upload in the composer.', fa: 'انجام شد. قدم بعدی: آپلود عکس در کادر پیام.' } }
+      ],
+      c5: [
+        { k: 'd1', type: 'text', who: 'ali', time: '08:40', text: { en: 'Pointer drag works across all columns.', fa: 'کشیدن با موس بین همه‌ی ستون‌ها کار می‌کند.' } },
+        { k: 'd2', type: 'event', ev: 'progress', who: 'ali', val: 60, time: '08:41' }
+      ]
+    };
+    const cardsAll = BASE.concat(this.state.extra).filter((k) => !this.state.deleted[k.id]);
+    const live = cardsAll.map((k) => ({
+      k: k,
+      col: this.state.colOf[k.id] !== undefined ? this.state.colOf[k.id] : k.c,
+      g: this.state.progress[k.id] !== undefined ? this.state.progress[k.id] : k.g,
+      mem: this.state.members[k.id] || k.m
+    }));
+    const byId = {};
+    live.forEach((x) => { byId[x.k.id] = x; });
+    const msgsOf = (space) => (SEED[space] || []).concat(this.state.msgs[space] || []);
+    const bars = (p) => { const off = '#D9E1E8'; return { b1: P[p].c, b2: P[p].lv >= 2 ? P[p].c : off, b3: P[p].lv >= 3 ? P[p].c : off }; };
+    const date = (d) => (fa ? toFa(d) + ' ' + t.month : d + ' ' + t.month);
+    const dueState = (x) => {
+      const d = x.k.due;
+      if (!d) return null;
+      if (x.col === 4) return { text: t.doneW, bg: '#E3F0E8', fg: '#2F6B4B' };
+      if (d < TODAY) return { text: date(d), bg: '#FDE7E4', fg: '#B42318' };
+      if (d === TODAY) return { text: t.today, bg: '#FBEFD9', fg: '#8A4B06' };
+      if (d === TODAY + 1) return { text: t.tomorrow, bg: '#FBF4E6', fg: '#8A5A0E' };
+      return { text: date(d), bg: 'transparent', fg: '#4B5B6B' };
+    };
+    const openRoom = (id) => () => this.setState({ view: 'chat', space: id, menu: -1 });
+    const comfy = this.state.density === 'comfortable';
+    const columns = COLS.map((c, ci) => {
+      const inCol = live.filter((x) => x.col === ci);
+      const n = inCol.length;
+      const cards = inCol.map((x) => {
+        const ds = dueState(x);
+        const b = bars(x.k.p);
+        const pctVal = x.col === 4 ? 100 : x.g;
+        return {
+          title: L(x.k.t),
+          priName: t.pri[x.k.p], priColor: P[x.k.p].c, b1: b.b1, b2: b.b2, b3: b.b3,
+          labels: x.k.l.map(lab), showChips: comfy && x.k.l.length > 0,
+          hasDue: !!ds, dueText: ds ? ds.text : '', dueBg: ds ? ds.bg : '', dueFg: ds ? ds.fg : '',
+          pct: num(pctVal) + '٪'.replace('٪', fa ? '٪' : '%'), pctW: pctVal + '%', pctColor: pctVal >= 100 ? '#6FA287' : '#2F6FA8',
+          msgCount: num(msgsOf(x.k.id).length), msgTitle: num(msgsOf(x.k.id).length) + t.msgs,
+          avs: x.mem.map(who),
+          canMove: ci < 4, moveLabel: ci < 4 ? t.moveTo + t.cols[ci + 1] : '', roomLabel: t.openRoomOf, delLabel: t.del,
+          open: openRoom(x.k.id),
+          moveNext: () => this.patch('colOf', x.k.id, ci + 1),
+          remove: () => this.patch('deleted', x.k.id, true)
+        };
+      });
+      let countStyle = 'height: 20px; display: inline-flex; align-items: center; padding: 0 7px; border-radius: 999px; font-size: 12px; font-weight: 500; ';
+      let border = '#D6E2EC';
+      let countTitle = num(n) + t.cards;
+      if (c.limit && n > c.limit) { countStyle += 'background: #FDE7E4; color: #B42318'; border = '#F0B4AC'; countTitle = t.overLimit; }
+      else if (c.limit && n === c.limit) { countStyle += 'background: #FBEFD9; color: #8A4B06'; countTitle = t.atLimit; }
+      else { countStyle += 'background: #FFFDF8; color: #4B5B6B'; }
+      const collapsed = !!this.state.collapsed[ci];
+      return {
+        name: t.cols[ci], accent: c.accent, border: border,
+        countText: c.limit ? num(n) + ' / ' + num(c.limit) : num(n), countStyle: countStyle, countTitle: countTitle,
+        limitText: c.limit ? num(c.limit) : t.none, addLabel: t.addTo + t.cols[ci], menuLabel: t.cols[ci] + t.menuOf, expandLabel: t.expand + t.cols[ci],
+        cards: cards, collapsed: collapsed, expanded: !collapsed,
+        menuOpen: this.state.menu === ci,
+        menuToggle: () => this.setState({ menu: this.state.menu === ci ? -1 : ci }),
+        toggle: () => { this.patch('collapsed', ci, !collapsed); this.setState({ menu: -1 }); }
+      };
+    });
+    const total = live.length;
+    const overdue = live.filter((x) => x.k.due && x.k.due < TODAY && x.col !== 4).length;
+    const doneN = live.filter((x) => x.col === 4).length;
+    const pct = total ? Math.round((doneN / total) * 100) : 0;
+    const seg = (on, extra) => 'height: 28px; padding: 0 10px; border: 0; border-radius: 6px; font: inherit; font-size: 12px; font-weight: 500; cursor: pointer; ' + (extra || '') + (on ? 'background: #FFFFFF; color: #1F2A37; box-shadow: 0 1px 2px rgba(31,42,55,.10)' : 'background: transparent; color: #5F6B78');
+    const navSeg = (on) => 'display: flex; align-items: center; gap: 7px; height: 32px; padding: 0 12px; border: 0; border-radius: 7px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; ' + (on ? 'background: #FFFFFF; color: #1E3A5F; box-shadow: 0 1px 2px rgba(31,42,55,.10)' : 'background: transparent; color: #5F6B78');
+    const space = this.state.space;
+    const spaceCard = space !== 'general' ? byId[space] : null;
+    const spaceStyle = (on) => 'display: flex; align-items: flex-start; gap: 10px; width: 100%; padding: 9px 10px; border: 0; border-radius: 10px; font: inherit; text-align: start; cursor: pointer; ' + (on ? 'background: #E6EEF5; box-shadow: inset 0 0 0 1px #C9D7E3' : 'background: transparent');
+    const rooms = live.map((x) => ({
+      title: L(x.k.t), accent: COLS[x.col].accent, pctW: (x.col === 4 ? 100 : x.g) + '%',
+      sub: num(x.col === 4 ? 100 : x.g) + (fa ? '٪' : '%') + ' · ' + num(x.mem.length) + t.membersN,
+      current: space === x.k.id ? 'true' : 'false', style: spaceStyle(space === x.k.id), go: () => this.setState({ space: x.k.id })
+    }));
+    const fmtEvent = (m) => {
+      const a = m.who === ME ? t.you : L(M[m.who].n);
+      if (m.ev === 'progress') return { text: fa ? a + t.evProgress + toFa(m.val) + '٪ گذاشت' : a + t.evProgress + m.val + '%', icon: 'M3 17l6-6 4 4 8-8M15 7h6v6' };
+      if (m.ev === 'added') return { text: a + t.evAdded + L(M[m.target].n), icon: 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M19 8v6M22 11h-6' };
+      if (m.ev === 'removed') return { text: a + t.evRemoved + L(M[m.target].n), icon: 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M22 11h-6' };
+      return { text: a, icon: 'M12 5v14M5 12h14' };
+    };
+    const convMsgs = msgsOf(space).map((m) => {
+      const base = { key: m.k, isEvent: false, isTask: false, isMsg: false, time: num(m.time) };
+      if (m.type === 'event') { const e = fmtEvent(m); return Object.assign(base, { isEvent: true, text: e.text, icon: e.icon }); }
+      if (m.type === 'task') {
+        const tc = byId[m.task];
+        const a = m.who === ME ? t.you : L(M[m.who].n);
+        return Object.assign(base, { isTask: true, text: a + t.evCreated, taskTitle: tc ? L(tc.k.t) : '', openTask: () => this.setState({ space: m.task }) });
+      }
+      const own = m.who === ME;
+      const w = who(m.who);
+      const txt = L(m.text) || '';
+      return Object.assign(base, {
+        isMsg: true, own: own, name: own ? t.you : w.n, ini: w.i, avBg: w.bg, showAv: !own,
+        justify: own ? 'flex-end' : 'flex-start', align: own ? 'flex-end' : 'flex-start',
+        text: txt, hasText: !!txt,
+        hasSrc: !!m.src, src: m.src || '', isPlaceholder: m.type === 'image' && !m.src, file: m.file || '', alt: m.file || 'image',
+        bubble: 'padding: 10px 12px; border-radius: 14px; display: flex; flex-direction: column; gap: 8px; ' + (own ? 'background: #2F6FA8; color: #FFFFFF; border-end-end-radius: 4px' : 'background: #FFFDF8; color: #1F2A37; border: 1px solid #DCE4EA; border-end-start-radius: 4px')
+      });
+    });
+    let conv;
+    if (spaceCard) {
+      conv = { title: L(spaceCard.k.t), sub: t.cols[spaceCard.col] + ' · ' + num(spaceCard.mem.length) + t.membersN, avs: spaceCard.mem.map(who) };
+    } else {
+      conv = { title: '# ' + t.general, sub: t.generalSub, avs: Object.keys(M).map(who) };
+    }
+    conv.msgs = convMsgs;
+    conv.empty = convMsgs.length === 0;
+    let tp = {};
+    if (spaceCard) {
+      const id = spaceCard.k.id;
+      const g = spaceCard.col === 4 ? 100 : spaceCard.g;
+      const ds = dueState(spaceCard);
+      tp = {
+        pct: num(g) + (fa ? '٪' : '%'), raw: g,
+        setProgress: (e) => this.patch('progress', id, Number(e.target.value)),
+        post: () => this.push(id, { k: 'p' + Date.now(), type: 'event', ev: 'progress', who: ME, val: g, time: this.now() }),
+        membersTitle: t.members + ' · ' + num(spaceCard.mem.length),
+        members: spaceCard.mem.map((k) => Object.assign(who(k), {
+          removeLabel: t.remove + L(M[k].n),
+          remove: () => { this.patch('members', id, spaceCard.mem.filter((x) => x !== k)); this.push(id, { k: 'm' + Date.now(), type: 'event', ev: 'removed', who: ME, target: k, time: this.now() }); }
+        })),
+        others: Object.keys(M).filter((k) => spaceCard.mem.indexOf(k) < 0).map((k) => ({
+          n: L(M[k].n),
+          add: () => { this.patch('members', id, spaceCard.mem.concat([k])); this.push(id, { k: 'a' + Date.now(), type: 'event', ev: 'added', who: ME, target: k, time: this.now() }); }
+        })),
+        rows: [
+          { k: t.column, v: t.cols[spaceCard.col], color: '#1E3A5F' },
+          { k: t.priority, v: t.pri[spaceCard.k.p], color: P[spaceCard.k.p].c },
+          { k: t.due, v: ds ? ds.text : t.noDue, color: ds ? (ds.fg === '#4B5B6B' ? '#1E3A5F' : ds.fg) : '#5F6B78' }
+        ],
+        labels: spaceCard.k.l.map(lab),
+        details: L(spaceCard.k.d)
+      };
+    }
+    const draft = this.state.draft;
+    const send = () => {
+      const text = this.state.draft.trim();
+      if (!text) return;
+      this.push(this.state.space, { k: 's' + Date.now(), type: 'text', who: ME, time: this.now(), text: text });
+      this.setState({ draft: '' });
+    };
+    const makeTask = () => {
+      const text = this.state.draft.trim();
+      if (!text) return;
+      const id = 'n' + Date.now();
+      const card = { id: id, c: 1, t: { en: text, fa: text }, d: { en: '', fa: '' }, p: 'medium', l: [], m: [ME], g: 0 };
+      const all = Object.assign({}, this.state.msgs);
+      all[this.state.space] = (all[this.state.space] || []).concat([{ k: 't' + Date.now(), type: 'task', who: ME, time: this.now(), task: id }]);
+      this.setState({ extra: this.state.extra.concat([card]), msgs: all, draft: '' });
+    };
+    const attach = (e) => {
+      const f = e.target.files && e.target.files[0];
+      if (!f) return;
+      const url = URL.createObjectURL(f);
+      this.push(this.state.space, { k: 'i' + Date.now(), type: 'image', who: ME, time: this.now(), src: url, file: f.name, text: this.state.draft.trim() });
+      this.setState({ draft: '' });
+      e.target.value = '';
+    };
+    return {
+      dir: fa ? 'rtl' : 'ltr',
+      font: fa ? "'Vazirmatn', system-ui, sans-serif" : "'Geist', 'Inter', system-ui, sans-serif",
+      flip: fa ? 'scaleX(-1)' : 'none',
+      t: t,
+      isBoard: view === 'board', isChat: view === 'chat',
+      boardCurrent: view === 'board' ? 'page' : 'false', chatCurrent: view === 'chat' ? 'page' : 'false',
+      navBoard: navSeg(view === 'board'), navChat: navSeg(view === 'chat'),
+      goBoard: () => this.setState({ view: 'board' }), goChat: () => this.setState({ view: 'chat' }),
+      chatBadge: num(3),
+      isEn: !fa, isFa: fa,
+      enBtn: seg(!fa, "font-family: 'Geist', sans-serif; "), faBtn: seg(fa, "font-family: 'Vazirmatn', sans-serif; "),
+      setEn: () => this.setState({ lang: 'en' }), setFa: () => this.setState({ lang: 'fa' }),
+      isComfy: comfy, isCompact: !comfy, comfyBtn: seg(comfy), compactBtn: seg(!comfy),
+      setComfy: () => this.setState({ density: 'comfortable' }), setCompact: () => this.setState({ density: 'compact' }),
+      pad: comfy ? '12px' : '8px 10px', gap: comfy ? '8px' : '6px',
+      sum: { total: num(total) + t.total, overdue: num(overdue) + t.overdue, done: fa ? toFa(pct) + t.donePct : pct + t.donePct, pct: pct + '%' },
+      team: Object.keys(M).map(who),
+      columns: columns,
+      rooms: rooms,
+      generalCurrent: space === 'general' ? 'true' : 'false', generalStyle: spaceStyle(space === 'general'),
+      goGeneral: () => this.setState({ space: 'general' }),
+      conv: conv, hasTask: !!spaceCard, tp: tp,
+      draft: draft, noDraft: !draft.trim(), draftOpacity: draft.trim() ? '1' : '.55',
+      onDraft: (e) => this.setState({ draft: e.target.value }),
+      onKey: (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } },
+      send: send, makeTask: makeTask, attach: attach,
+      help: this.state.help,
+      openHelp: () => this.setState({ help: true, menu: -1 }),
+      closeHelp: () => this.setState({ help: false }),
+      shortcuts: [['N'], ['Enter'], [',', '.'], ['Del'], ['G', 'C'], ['L'], ['?'], ['Esc']].map((keys, i) => ({ label: t.sc[i], keys: keys }))
+    };
+  }
+}
+</script>
+</body>
+</html>

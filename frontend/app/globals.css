@@ -1,0 +1,133 @@
+@import "tailwindcss";
+
+/* Linen Sky palette: every color is a role-named variable. */
+@theme static {
+  --font-sans: var(--font-geist-sans), var(--font-vazirmatn), sans-serif;
+  --font-brand: var(--font-geist-sans), sans-serif;
+  --font-mono: var(--font-geist-mono), monospace;
+
+  --color-page: #f6f1e7;
+  --color-chrome: #fbf8f2;
+  --color-hairline: #e8e0d1;
+  --color-rule: #eee7da;
+  --color-column: #e6eef5;
+  --color-column-border: #d6e2ec;
+  --color-column-drop: #dce8f2;
+  --color-column-over-border: #f0b4ac;
+  --color-surface: #fffdf8;
+  --color-surface-border: #dce4ea;
+  --color-surface-hover: #ffffff;
+  --color-surface-hover-border: #b9cde0;
+  --color-segment: #f1ebdf;
+  --color-segment-border: #e4dccb;
+  --color-ghost-hover: #ede6d8;
+  --color-space-hover: #efe8da;
+  --color-selected-ring: #c9d7e3;
+  --color-dashed-line: #c9d3dc;
+
+  --color-ink: #1f2a37;
+  --color-heading: #1e3a5f;
+  --color-secondary: #4b5b6b;
+  --color-muted: #5f6b78;
+
+  --color-primary: #2f6fa8;
+  --color-primary-hover: #255c8e;
+  --color-unread: #b42318;
+  --color-overdue-dot: #d9534f;
+  --color-track-summary: #e2d8c6;
+  --color-progress-done: #6fa287;
+  --color-bar-off: #d9e1e8;
+  --color-empty-icon: #9fb3c8;
+  --color-scroll-thumb: #d9cfbd;
+
+  --color-priority-high: #b42318;
+  --color-priority-medium: #a15c07;
+  --color-priority-low: #5f6b78;
+
+  --color-due-overdue: #b42318;
+  --color-due-overdue-bg: #fde7e4;
+  --color-due-today: #8a4b06;
+  --color-due-today-bg: #fbefd9;
+  --color-due-tomorrow: #8a5a0e;
+  --color-due-tomorrow-bg: #fbf4e6;
+  --color-due-done: #2f6b4b;
+  --color-due-done-bg: #e3f0e8;
+
+  --accent-ideas: #a8b4c2;
+  --accent-todo: #7fa7cf;
+  --accent-doing: #e0a43b;
+  --accent-review: #9c8ac9;
+  --accent-done: #6fa287;
+
+  --label-design-fg: #6d28d9;
+  --label-design-bg: #efe9fb;
+  --label-frontend-fg: #155e75;
+  --label-frontend-bg: #ddeff4;
+  --label-bug-fg: #b42318;
+  --label-bug-bg: #fde7e4;
+  --label-docs-fg: #3730a3;
+  --label-docs-bg: #e7e8f8;
+  --label-testing-fg: #9d174d;
+  --label-testing-bg: #fbe7ef;
+
+  --avatar-sara: #c9d9ec;
+  --avatar-ali: #cfe3d6;
+  --avatar-maryam: #f1d3dd;
+  --avatar-reza: #f2ddb8;
+
+  --shadow-card: 0 1px 2px rgba(31, 42, 55, 0.06);
+  --shadow-card-hover: 0 6px 18px rgba(31, 58, 95, 0.1);
+  --shadow-drag: 0 16px 32px rgba(31, 58, 95, 0.22);
+  --shadow-popover: 0 12px 32px rgba(31, 42, 55, 0.16);
+  --shadow-dialog: 0 24px 64px rgba(31, 42, 55, 0.22);
+  --shadow-segment: 0 1px 2px rgba(31, 42, 55, 0.1);
+}
+
+@layer base {
+  html,
+  body {
+    height: 100%;
+  }
+
+  body {
+    background-color: var(--color-page);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-variant-numeric: tabular-nums;
+  }
+
+  html[lang="fa"] body {
+    font-family: var(--font-vazirmatn), sans-serif;
+  }
+
+  button:not(:disabled),
+  label,
+  select {
+    cursor: pointer;
+  }
+
+  button:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+
+  dialog::backdrop {
+    background: rgba(31, 42, 55, 0.32);
+    backdrop-filter: blur(2px);
+  }
+}
+
+@utility tidy-scroll {
+  &::-webkit-scrollbar {
+    height: 10px;
+    width: 10px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: var(--color-scroll-thumb);
+    border-radius: 999px;
+  }
+}
