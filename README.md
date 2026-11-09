@@ -1,5 +1,7 @@
 # Tidy
 
+Live: https://tidy-atefe.netlify.app
+
 A bilingual (English and Persian) kanban board with task chat rooms, built with Next.js. All data is saved in the browser's localStorage.
 
 ## Run
