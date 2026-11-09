@@ -9,9 +9,17 @@ const vazirmatn = Vazirmatn({
   subsets: ["arabic", "latin"],
 });
 
+const title = "Tidy - Kanban board";
+const description =
+  "A bilingual Persian/English Kanban project board with a team chat, built in the Carabin vibe coding bootcamp.";
+
 export const metadata: Metadata = {
-  title: "Tidy - Kanban board",
-  description: "A bilingual project board with task chat rooms",
+  // Netlify sets URL at build time; link previews need absolute image addresses.
+  metadataBase: new URL(process.env.URL ?? "http://localhost:3000"),
+  title,
+  description,
+  openGraph: { title, description, type: "website", siteName: "Tidy" },
+  twitter: { card: "summary_large_image", title, description },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

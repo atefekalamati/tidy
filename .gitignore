@@ -8,3 +8,4 @@ blob-report/
 .env*
 *.tsbuildinfo
 .DS_Store
+.netlify/
