@@ -164,13 +164,16 @@ export function AvatarStack({ members, size, ring }: { members: Member[]; size: 
 
 export function LabelChip({ id, tall }: { id: string; tall?: boolean }) {
   const { L } = useT();
-  const label = labels.find((l) => l.id === id)!;
+  const label = labels.find((l) => l.id === id);
   return (
     <span
-      style={{ color: `var(--label-${id}-fg)`, backgroundColor: `var(--label-${id}-bg)` }}
+      style={{
+        color: label ? `var(--label-${id}-fg)` : "var(--color-secondary)",
+        backgroundColor: label ? `var(--label-${id}-bg)` : "var(--color-segment)",
+      }}
       className={cx("inline-flex items-center rounded-md px-2 text-[12px] font-medium", tall ? "h-[22px]" : "h-5")}
     >
-      {L(label.name)}
+      {label ? L(label.name) : id}
     </span>
   );
 }

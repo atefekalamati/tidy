@@ -12,8 +12,9 @@ const CHORD_MS = 1500;
  * so they keep working when a Persian keyboard layout is active.
  * Enter is the focused card's own button and Esc is handled by dialogs and menus.
  */
-export function useShortcuts() {
+export function useShortcuts(enabled = true) {
   useEffect(() => {
+    if (!enabled) return;
     let lastG = 0;
 
     function onKeyDown(e: KeyboardEvent) {
@@ -71,5 +72,5 @@ export function useShortcuts() {
 
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
-  }, []);
+  }, [enabled]);
 }

@@ -1,7 +1,23 @@
 import { describe, expect, it, vi } from "vitest";
 import { GENERAL_SPACE } from "@/data/seed";
-import { initialState, placeCard, useStore } from "./store";
+import {
+  getStorageStatus,
+  initialState,
+  placeCard,
+  PRE_RESTORE_BACKUP_KEY,
+  restoreV1Backup,
+  STORE_NAME,
+  useStore,
+  V1_BACKUP_KEY,
+} from "./store";
 import type { CardInput } from "./types";
+
+it("shows the owner's current name when older saved data has a different one", async () => {
+  const oldOwner = { id: "sara", name: { en: "Old Name", fa: "Old Name" }, initials: { en: "ON", fa: "ON" } };
+  localStorage.setItem(STORE_NAME, JSON.stringify({ version: 3, state: { members: { sara: oldOwner } } }));
+  await useStore.persist.rehydrate();
+  expect(useStore.getState().members.sara.name.en).toBe("Atefe Kalamati");
+});
 
 const store = () => useStore.getState();
 const column = (id: string) => store().columns.find((c) => c.id === id)!;
@@ -252,37 +268,159 @@ describe("persistence", () => {
     expect(initialState()).toMatchObject({ language: "en", density: "comfortable", view: "board" });
   });
 
-  it("writes data at version 2 and leaves the open dialog out", () => {
+  it("writes data at version 3 and leaves the open dialog out", () => {
     store().openDialog({ type: "help" });
     store().setLanguage("fa");
-    expect(stored().version).toBe(2);
+    expect(stored().version).toBe(3);
     expect(stored().state.language).toBe("fa");
     expect(stored().state).not.toHaveProperty("dialog");
   });
 
-  it("replaces V1 data with the V2 sample data", async () => {
-    localStorage.setItem(
-      "kanban-store",
-      JSON.stringify({
-        version: 0,
-        state: {
-          language: "fa",
-          columns: [{ id: "todo", cardIds: ["old"] }],
-          cards: { old: { id: "old", title: "V1", priority: "low", labelIds: [], assigneeId: "x" } },
+  const legacyRaw = JSON.stringify({
+    version: 0,
+    state: {
+      language: "fa",
+      density: "compact",
+      columns: [
+        { id: "todo", name: "Next", cardIds: ["older", "old"], wipLimit: 4, collapsed: true },
+        { id: "in-progress", cardIds: ["doing-card"] },
+      ],
+      cards: {
+        older: { id: "older", title: "First task", priority: "high", labelIds: ["bug"], assigneeId: "x", extra: "kept" },
+        old: {
+          id: "old",
+          title: "کارت قدیمی",
+          details: "متن",
+          priority: "low",
+          dueDate: "2026-11-18",
+          labelIds: ["design"],
+          assigneeId: "ali",
+          progress: 40,
         },
-      }),
-    );
+        "doing-card": { id: "doing-card", title: { en: "Working", fa: "در حال انجام" }, status: "doing" },
+      },
+      messages: {
+        general: [{ id: "announcement", type: "task", authorId: "sara", time: "09:00", cardId: "old" }],
+        old: [{ id: "message", type: "message", authorId: "x", time: "09:01", text: "Saved conversation" }],
+      },
+      unread: { old: 1 },
+    },
+  });
+
+  it("backs up raw V1 data and migrates tasks, order, assignees and preferences", async () => {
+    localStorage.setItem(STORE_NAME, legacyRaw);
     await useStore.persist.rehydrate();
-    expect(store().cards.old).toBeUndefined();
-    expect(Object.keys(store().cards)).toHaveLength(10);
-    expect(store().language).toBe("en");
-    expect(stored().version).toBe(2);
-    expect(stored().state.cards.old).toBeUndefined();
+    expect(localStorage.getItem(V1_BACKUP_KEY)).toBe(legacyRaw);
+    expect(stored().version).toBe(3);
+    expect(store()).toMatchObject({ language: "fa", density: "compact" });
+    expect(store().cards).toMatchObject({
+      older: { id: "older", title: "First task", memberIds: ["x"], progress: 0, extra: "kept" },
+      old: { id: "old", title: "کارت قدیمی", details: "متن", memberIds: ["ali"], progress: 40 },
+      "doing-card": { id: "doing-card", memberIds: [], progress: 0 },
+    });
+    expect(store().columns).toMatchObject([
+      { id: "ideas", cardIds: [] },
+      { id: "todo", name: "Next", cardIds: ["older", "old"], wipLimit: 4, collapsed: true },
+      { id: "doing", cardIds: ["doing-card"] },
+      { id: "review", cardIds: [] },
+      { id: "done", cardIds: [] },
+    ]);
+    expect(store().members.x).toMatchObject({ id: "x", name: { en: "x", fa: "x" } });
+    expect(store().messages.general).toEqual([
+      { id: "announcement", type: "task", authorId: "sara", time: "09:00", cardId: "old" },
+    ]);
+    expect(store().messages.old).toEqual([
+      { id: "message", type: "message", authorId: "x", time: "09:01", text: "Saved conversation" },
+    ]);
+    expect(store().unread).toEqual({ old: 1 });
+    expect(getStorageStatus()).toBe("ready");
+  });
+
+  it("can restore the raw backup and safely re-run the migration", async () => {
+    localStorage.setItem(STORE_NAME, legacyRaw);
+    await useStore.persist.rehydrate();
+    store().deleteCard("old");
+    const currentRaw = localStorage.getItem(STORE_NAME);
+    await restoreV1Backup();
+    expect(store().cards.old).toMatchObject({ title: "کارت قدیمی", memberIds: ["ali"] });
+    expect(localStorage.getItem(V1_BACKUP_KEY)).toBe(legacyRaw);
+    expect(localStorage.getItem(PRE_RESTORE_BACKUP_KEY)).toBe(currentRaw);
+    expect(stored().version).toBe(3);
+  });
+
+  it("does not overwrite V1 data when a backup cannot be written", async () => {
+    localStorage.setItem(STORE_NAME, legacyRaw);
+    const nativeSetItem = Storage.prototype.setItem;
+    const setItem = vi.spyOn(Storage.prototype, "setItem").mockImplementation(function (this: Storage, key, value) {
+      if (key === V1_BACKUP_KEY) throw new DOMException("full", "QuotaExceededError");
+      nativeSetItem.call(this, key, value);
+    });
+    await useStore.persist.rehydrate();
+    setItem.mockRestore();
+    expect(getStorageStatus()).toBe("error");
+    expect(localStorage.getItem(STORE_NAME)).toBe(legacyRaw);
+    expect(localStorage.getItem(V1_BACKUP_KEY)).toBeNull();
+  });
+
+  it("keeps the original and backup if saving the converted state fails", async () => {
+    localStorage.setItem(STORE_NAME, legacyRaw);
+    const nativeSetItem = Storage.prototype.setItem;
+    const setItem = vi.spyOn(Storage.prototype, "setItem").mockImplementation(function (this: Storage, key, value) {
+      if (key === STORE_NAME) throw new DOMException("full", "QuotaExceededError");
+      nativeSetItem.call(this, key, value);
+    });
+    await useStore.persist.rehydrate();
+    setItem.mockRestore();
+    expect(getStorageStatus()).toBe("error");
+    expect(localStorage.getItem(STORE_NAME)).toBe(legacyRaw);
+    expect(localStorage.getItem(V1_BACKUP_KEY)).toBe(legacyRaw);
+  });
+
+  it("backs up corrupt data and blocks hydration without replacing it", async () => {
+    const corrupt = "{not json";
+    localStorage.setItem(STORE_NAME, corrupt);
+    await useStore.persist.rehydrate();
+    expect(getStorageStatus()).toBe("error");
+    expect(localStorage.getItem(STORE_NAME)).toBe(corrupt);
+    expect(localStorage.getItem(V1_BACKUP_KEY)).toBe(corrupt);
+  });
+
+  it("backs up and migrates legacy data without a version field", async () => {
+    const raw = JSON.stringify({
+      state: {
+        columns: [{ id: "todo", cardIds: ["unversioned"] }],
+        cards: { unversioned: { title: "Unversioned task" } },
+      },
+    });
+    localStorage.setItem(STORE_NAME, raw);
+    await useStore.persist.rehydrate();
+    expect(localStorage.getItem(V1_BACKUP_KEY)).toBe(raw);
+    expect(store().cards.unversioned.title).toBe("Unversioned task");
+    expect(stored().version).toBe(3);
+  });
+
+  it("leaves data from a newer app version untouched", async () => {
+    const raw = JSON.stringify({ version: 4, state: { cards: {} } });
+    localStorage.setItem(STORE_NAME, raw);
+    await useStore.persist.rehydrate();
+    expect(getStorageStatus()).toBe("error");
+    expect(localStorage.getItem(STORE_NAME)).toBe(raw);
+    expect(localStorage.getItem(V1_BACKUP_KEY)).toBeNull();
+  });
+
+  it("preserves a V2 store when upgrading its storage version", async () => {
+    const state = structuredClone(stored().state);
+    state.cards.c1.title = "Existing user edit";
+    localStorage.setItem(STORE_NAME, JSON.stringify({ version: 2, state }));
+    await useStore.persist.rehydrate();
+    expect(store().cards.c1.title).toBe("Existing user edit");
+    expect(stored().version).toBe(3);
   });
 
   it("survives corrupt storage", async () => {
     localStorage.setItem("kanban-store", "{not json");
     await useStore.persist.rehydrate();
-    expect(Object.keys(store().cards)).toHaveLength(10);
+    expect(getStorageStatus()).toBe("error");
+    expect(localStorage.getItem("kanban-store")).toBe("{not json");
   });
 });

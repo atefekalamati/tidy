@@ -257,7 +257,7 @@ test.describe("task panel", () => {
   });
 });
 
-test("V1 data in localStorage is replaced by the V2 sample data", async ({ page }) => {
+test("V1 data is backed up, migrated, and retained after reload", async ({ page }) => {
   await page.evaluate(() => {
     localStorage.setItem(
       "kanban-store",
@@ -266,15 +266,68 @@ test("V1 data in localStorage is replaced by the V2 sample data", async ({ page 
         state: {
           language: "fa",
           columns: [{ id: "todo", cardIds: ["old"] }],
-          cards: { old: { id: "old", title: "کارت قدیمی", priority: "low", labelIds: [], assigneeId: "x" } },
+          cards: {
+            old: {
+              id: "old",
+              title: "کارت قدیمی",
+              details: "توضیحات حفظ‌شده",
+              priority: "low",
+              labelIds: ["legacy-label"],
+              assigneeId: "x",
+            },
+          },
         },
       }),
     );
   });
+  const rawV1 = await page.evaluate(() => localStorage.getItem("kanban-store"));
   await reload(page);
-  await expect(page.locator("html")).toHaveAttribute("dir", "ltr");
-  await expect(page.getByTestId("card")).toHaveCount(10);
-  await expect(page.getByText("کارت قدیمی")).toHaveCount(0);
-  const version = await page.evaluate(() => JSON.parse(localStorage.getItem("kanban-store")!).version);
-  expect(version).toBe(2);
+  await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+  await expect(page.getByTestId("card")).toHaveCount(1);
+  await expect(card(page, "کارت قدیمی")).toBeVisible();
+  await expect(card(page, "کارت قدیمی")).toContainText("legacy-label");
+  await expect(page.getByTestId("column-todo")).toContainText("کارت قدیمی");
+  const saved = await page.evaluate(() => ({
+    backup: localStorage.getItem("kanban-store-v1-backup"),
+    data: JSON.parse(localStorage.getItem("kanban-store")!),
+  }));
+  expect(saved.backup).toBe(rawV1);
+  expect(saved.data.version).toBe(3);
+  expect(saved.data.state.cards.old).toMatchObject({
+    details: "توضیحات حفظ‌شده",
+    memberIds: ["x"],
+  });
+  await reload(page);
+  await expect(page.getByTestId("card")).toHaveCount(1);
+  await expect(card(page, "کارت قدیمی")).toBeVisible();
+  await expect(card(page, "کارت قدیمی")).toContainText("legacy-label");
+});
+
+test("migration stops safely when a raw V1 backup cannot be written", async ({ page }) => {
+  const rawV1 = JSON.stringify({
+    version: 0,
+    state: {
+      columns: [{ id: "todo", cardIds: ["old"] }],
+      cards: { old: { id: "old", title: "Keep me", priority: "low" } },
+    },
+  });
+  await page.evaluate((raw) => {
+    localStorage.setItem("kanban-store", raw);
+  }, rawV1);
+  await page.addInitScript(() => {
+    const nativeSetItem = Storage.prototype.setItem;
+    Storage.prototype.setItem = function (key, value) {
+      if (key === "kanban-store-v1-backup") throw new DOMException("full", "QuotaExceededError");
+      nativeSetItem.call(this, key, value);
+    };
+  });
+  await page.reload();
+  await expect(page.locator("section[role=alert]")).toContainText("Saved data could not be loaded safely");
+  await expect(page.getByTestId("card")).toHaveCount(0);
+  const saved = await page.evaluate(() => ({
+    current: localStorage.getItem("kanban-store"),
+    backup: localStorage.getItem("kanban-store-v1-backup"),
+  }));
+  expect(saved.current).toBe(rawV1);
+  expect(saved.backup).toBeNull();
 });

@@ -12,8 +12,9 @@ HTMLDialogElement.prototype.close = function () {
   this.dispatchEvent(new Event("close"));
 };
 
-beforeEach(() => {
+beforeEach(async () => {
   localStorage.clear();
+  await useStore.persist.rehydrate();
   useStore.setState(initialState());
 });
 

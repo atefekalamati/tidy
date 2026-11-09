@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { createSeed, CURRENT_USER_ID, GENERAL_SPACE } from "@/data/seed";
+import { migrateLegacyState } from "./migration";
 import type {
   Card,
   CardInput,
@@ -30,6 +31,93 @@ export const initialState = () => ({
 
 type Data = ReturnType<typeof initialState>;
 type Persisted = Omit<Data, "dialog" | "lastDeleted">;
+
+export const STORE_NAME = "kanban-store";
+export const V1_BACKUP_KEY = "kanban-store-v1-backup";
+export const PRE_RESTORE_BACKUP_KEY = "kanban-store-before-restore-backup";
+
+type StorageStatus = "loading" | "ready" | "error";
+let storageStatus: StorageStatus = "loading";
+const storageStatusListeners = new Set<() => void>();
+let migrationError: unknown;
+
+const notifyStorageStatus = () => storageStatusListeners.forEach((listener) => listener());
+
+export const subscribeStorageStatus = (listener: () => void) => {
+  storageStatusListeners.add(listener);
+  return () => storageStatusListeners.delete(listener);
+};
+
+export const getStorageStatus = () => storageStatus;
+
+function backupRawState(local: Storage, raw: string) {
+  const existingBackup = Object.keys(local).find(
+    (key) => (key === V1_BACKUP_KEY || key.startsWith(`${V1_BACKUP_KEY}:`)) && local.getItem(key) === raw,
+  );
+  if (existingBackup) return existingBackup;
+
+  let key = V1_BACKUP_KEY;
+  let suffix = 0;
+  while (local.getItem(key) !== null) {
+    suffix += 1;
+    key = `${V1_BACKUP_KEY}:${Date.now()}-${String(suffix).padStart(6, "0")}`;
+  }
+  local.setItem(key, raw);
+  if (local.getItem(key) !== raw) throw new Error("Could not verify the V1 data backup.");
+  return key;
+}
+
+function prepareStoredValue(local: Storage, key: string, raw: string | null) {
+  if (raw === null || key !== STORE_NAME) return raw;
+
+  let envelope: unknown;
+  try {
+    envelope = JSON.parse(raw);
+  } catch {
+    backupRawState(local, raw);
+    throw new Error("Saved data is not valid JSON. The original data was backed up and left unchanged.");
+  }
+
+  if (typeof envelope !== "object" || envelope === null || Array.isArray(envelope)) {
+    backupRawState(local, raw);
+    throw new Error("Saved data has an unsupported format. The original data was backed up and left unchanged.");
+  }
+
+  const stored = envelope as { version?: unknown; state?: unknown };
+  if (typeof stored.version === "number") {
+    if (stored.version > 3) throw new Error("Saved data was created by a newer version and was left unchanged.");
+    if (stored.version >= 2) return raw;
+  }
+
+  backupRawState(local, raw);
+  if (typeof stored.version === "number") return raw;
+  return JSON.stringify({ ...stored, version: 0 });
+}
+
+export function restoreV1Backup() {
+  const local = window.localStorage;
+  const backupKey = Object.keys(local)
+    .filter((key) => key === V1_BACKUP_KEY || key.startsWith(`${V1_BACKUP_KEY}:`))
+    .sort()
+    .at(-1);
+  if (!backupKey) throw new Error("No V1 backup is available.");
+  const raw = local.getItem(backupKey);
+  if (raw === null) throw new Error("The selected V1 backup could not be read.");
+  const current = local.getItem(STORE_NAME);
+  if (current !== null && current !== raw) {
+    let currentBackupKey = PRE_RESTORE_BACKUP_KEY;
+    let suffix = 0;
+    while (local.getItem(currentBackupKey) !== null) {
+      suffix += 1;
+      currentBackupKey = `${PRE_RESTORE_BACKUP_KEY}:${Date.now()}-${String(suffix).padStart(6, "0")}`;
+    }
+    local.setItem(currentBackupKey, current);
+    if (local.getItem(currentBackupKey) !== current) throw new Error("The current data could not be backed up before restore.");
+  }
+  local.setItem(STORE_NAME, raw);
+  if (local.getItem(STORE_NAME) !== raw) throw new Error("The V1 backup could not be restored.");
+  return useStore.persist.rehydrate();
+}
 
 export interface Store extends Data {
   addCard: (columnId: ColumnId, input: CardInput) => string;
@@ -86,17 +174,24 @@ export function placeCard(columns: Column[], cardId: string, toColumnId: ColumnI
 // A quota error must not surface from inside a store update, so it is recorded here instead.
 let lastWriteFailed = false;
 
+let migrationPending = false;
+
 const storage = createJSONStorage<Persisted>(() => {
   const local = window.localStorage;
   return {
-    getItem: (key) => local.getItem(key),
+    getItem: (key) => prepareStoredValue(local, key, local.getItem(key)),
     removeItem: (key) => local.removeItem(key),
     setItem: (key, value) => {
       try {
         local.setItem(key, value);
         lastWriteFailed = false;
-      } catch {
+        migrationPending = false;
+      } catch (error) {
         lastWriteFailed = true;
+        if (migrationPending) {
+          migrationPending = false;
+          throw error;
+        }
       }
     },
   };
@@ -271,8 +366,8 @@ export const useStore = create<Store>()(
       };
     },
     {
-      name: "kanban-store",
-      version: 2,
+      name: STORE_NAME,
+      version: 3,
       storage,
       partialize: ({ dialog: _dialog, lastDeleted: _lastDeleted, ...state }) => state,
       // The owner's name comes from the seed, so browsers with older saved data show it too.
@@ -284,11 +379,27 @@ export const useStore = create<Store>()(
           members: { ...(saved?.members ?? current.members), [CURRENT_USER_ID]: current.members[CURRENT_USER_ID] },
         };
       },
-      // V1 data has a different shape (single assignee, no chat), so it is replaced by the V2 sample data.
-      migrate: () => {
-        const { dialog: _dialog, lastDeleted: _lastDeleted, ...fresh } = initialState();
-        return fresh;
+      migrate: (persisted, version) => {
+        if (version === 2) return persisted as Persisted;
+        if (version === 0 || version === 1) {
+          const migrated = migrateLegacyState(persisted) as Persisted;
+          migrationPending = true;
+          return migrated;
+        }
+        throw new Error(`Saved data version ${version} cannot be migrated safely.`);
+      },
+      onRehydrateStorage: () => {
+        storageStatus = "loading";
+        migrationError = undefined;
+        notifyStorageStatus();
+        return (_state, error) => {
+          migrationError = error;
+          storageStatus = error ? "error" : "ready";
+          notifyStorageStatus();
+        };
       },
     },
   ),
 );
+
+export const getStorageError = () => migrationError;
