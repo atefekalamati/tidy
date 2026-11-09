@@ -7,7 +7,7 @@ export const GENERAL_SPACE = "general";
 export const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
 
 export const seedMembers: Record<string, Member> = {
-  sara: { id: "sara", name: { en: "Sara Ahmadi", fa: "سارا احمدی" }, initials: { en: "SA", fa: "سا" } },
+  sara: { id: "sara", name: { en: "Atefe Kalamati", fa: "عاطفه کلماتی" }, initials: { en: "AK", fa: "عک" } },
   ali: { id: "ali", name: { en: "Ali Rezaei", fa: "علی رضایی" }, initials: { en: "AR", fa: "عر" } },
   maryam: { id: "maryam", name: { en: "Maryam Karimi", fa: "مریم کریمی" }, initials: { en: "MK", fa: "مک" } },
   reza: { id: "reza", name: { en: "Reza Mohammadi", fa: "رضا محمدی" }, initials: { en: "RM", fa: "رم" } },

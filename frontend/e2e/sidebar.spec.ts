@@ -24,7 +24,7 @@ test("shows every part of the sidebar at 256px on the start side", async ({ page
   await expect(page.getByTestId("room")).toHaveCount(10);
   await expect(room(page, "Task chat room")).toContainText("45% · 3 members");
   await expect(button(sidebar(page), "English")).toHaveAttribute("aria-pressed", "true");
-  await expect(page.getByTestId("profile")).toContainText("Sara Ahmadi");
+  await expect(page.getByTestId("profile")).toContainText("Atefe Kalamati");
   await expect(page.getByTestId("profile")).toContainText("Workspace owner");
   await expect(button(sidebar(page), "Account menu")).toBeVisible();
 });
@@ -112,7 +112,7 @@ test("the sidebar sits on the right in Persian and is fully translated", async (
   await expect(bar.getByText("اتاق‌های کار")).toBeVisible();
   await expect(button(bar, "عمومی")).toBeVisible();
   await expect(room(page, "اتاق گفتگوی کار")).toContainText("۴۵٪ · ۳ عضو");
-  await expect(page.getByTestId("profile")).toContainText("سارا احمدی");
+  await expect(page.getByTestId("profile")).toContainText("عاطفه کلماتی");
   await expect(page.getByTestId("profile")).toContainText("مالک فضای کار");
   await expect(page.getByRole("navigation", { name: "مسیر صفحه" })).toContainText("فضای کار");
   await expect(button(page, "کارت جدید")).toBeVisible();

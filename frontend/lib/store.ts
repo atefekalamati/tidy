@@ -275,6 +275,15 @@ export const useStore = create<Store>()(
       version: 2,
       storage,
       partialize: ({ dialog: _dialog, lastDeleted: _lastDeleted, ...state }) => state,
+      // The owner's name comes from the seed, so browsers with older saved data show it too.
+      merge: (persisted, current) => {
+        const saved = persisted as Persisted | undefined;
+        return {
+          ...current,
+          ...saved,
+          members: { ...(saved?.members ?? current.members), [CURRENT_USER_ID]: current.members[CURRENT_USER_ID] },
+        };
+      },
       // V1 data has a different shape (single assignee, no chat), so it is replaced by the V2 sample data.
       migrate: () => {
         const { dialog: _dialog, lastDeleted: _lastDeleted, ...fresh } = initialState();

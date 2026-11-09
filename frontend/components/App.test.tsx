@@ -89,7 +89,7 @@ describe("Sidebar", () => {
     expect(within(screen.getByTestId("workspace")).queryByRole("button")).not.toBeInTheDocument();
     expect(screen.getByTestId("board-count")).toHaveTextContent("10");
     expect(screen.getByTestId("unread-badge")).toHaveTextContent("3");
-    expect(screen.getByTestId("profile")).toHaveTextContent("Sara Ahmadi");
+    expect(screen.getByTestId("profile")).toHaveTextContent("Atefe Kalamati");
     expect(screen.getByTestId("profile")).toHaveTextContent("Workspace owner");
     expect(screen.getByRole("button", { name: "Account menu" })).toBeInTheDocument();
   });
